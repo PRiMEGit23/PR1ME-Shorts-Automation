@@ -52,6 +52,9 @@ class Settings(BaseSettings):
     target_width: int = 1080
     target_height: int = 1920
 
+    #: Master timeline frame rate (frames per second) used by assembly.
+    target_fps: int = Field(default=30, ge=1, le=240)
+
     #: Default Shorts duration budget in seconds (PIPELINE_SPEC).
     target_max_duration_seconds: float = 45.0
     target_min_duration_seconds: float = 35.0

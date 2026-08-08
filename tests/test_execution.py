@@ -30,7 +30,7 @@ from pr1me.providers import (
 from pr1me.providers.base_provider import BaseProvider
 from pr1me.stages import TopicStage, register_auto
 
-logger = logging.getLogger("test-execution")
+logger: logging.LoggerAdapter = logging.LoggerAdapter(logging.getLogger("test-execution"), {})
 
 
 @pytest.fixture

@@ -1,6 +1,6 @@
 """``pr1me run`` command: run the content pipeline against a sample CSV.
 
-Bootstrap command. It wires the engine (prompt loader, provider, registered
+Bootstrap command. It wires the engine (prompt loader, providers, registered
 stages, pipeline runner) and writes every completed stage's output to its
 canonical artifact under ``output/``:
 
@@ -8,6 +8,19 @@ canonical artifact under ``output/``:
 - ``output/script.json``
 - ``output/fact_summary.json``
 - ``output/visual_plan.json``
+- ``output/images/`` (one PNG per visual-plan shot)
+- ``output/image_manifest.json``
+- ``output/audio/`` (the narration WAV and the mastered track)
+- ``output/voice_manifest.json``
+- ``output/audio_manifest.json``
+- ``output/motion_graphics.json``
+- ``output/assembly.json``
+- ``output/short.mp4``
+- ``output/render_manifest.json``
+- ``output/metadata.json``
+- ``output/thumbnail.png``
+- ``output/thumbnail_manifest.json``
+- ``output/publish_manifest.json``
 """
 
 from __future__ import annotations
@@ -29,6 +42,15 @@ from pr1me.models.contracts.topic import TopicInput
 from pr1me.pipeline.runner import PipelineRunner, RunReport
 from pr1me.providers.deepseek import DeepSeekProvider
 from pr1me.stages import register_auto
+from pr1me.stages.audio_mix_stage import AudioMixStage
+from pr1me.stages.image_generation_stage import ImageGenerationStage
+from pr1me.stages.metadata_stage import MetadataStage
+from pr1me.stages.motion_stage import MotionGraphicsStage
+from pr1me.stages.publisher_stage import PublisherStage
+from pr1me.stages.thumbnail_stage import ThumbnailStage
+from pr1me.stages.video_assembly_stage import VideoAssemblyStage
+from pr1me.stages.video_render_stage import VideoRenderStage
+from pr1me.stages.voice_generation_stage import VoiceGenerationStage
 
 logger = get_logger("pr1me.cli.run")
 
@@ -45,20 +67,35 @@ _STAGE_OUTPUTS: dict[str, str] = {
     "script": "script.json",
     "fact_check": "fact_summary.json",
     "visual": "visual_plan.json",
+    "image_generation": "image_manifest.json",
+    "voice_generation": "voice_manifest.json",
+    "audio_mix": "audio_manifest.json",
+    "motion_graphics": "motion_graphics.json",
+    "video_assembly": "assembly.json",
+    "video_render": "render_manifest.json",
+    "metadata": "metadata.json",
+    "thumbnail": "thumbnail_manifest.json",
+    "publisher": "publish_manifest.json",
 }
 
 
 def _add_parser(sub: ArgumentParser) -> None:
     sub.add_argument(
-        "--csv", metavar="PATH", default=None,
+        "--csv",
+        metavar="PATH",
+        default=None,
         help="recently used topics CSV (default: assets/topics.csv)",
     )
     sub.add_argument(
-        "--output", metavar="PATH", default=None,
+        "--output",
+        metavar="PATH",
+        default=None,
         help="output JSON path (default: output/topic.json)",
     )
     sub.add_argument(
-        "--directive", metavar="TEXT", default=None,
+        "--directive",
+        metavar="TEXT",
+        default=None,
         help="channel directive (default: built-in)",
     )
     sub.add_argument("--category", metavar="NAME", default=None, help="optional category focus")
@@ -85,6 +122,15 @@ async def _run(args: Namespace, settings: Settings) -> int:
     )
     registry = StageRegistry(context=context)
     register_auto(registry)
+    registry.register(ImageGenerationStage(context=context))
+    registry.register(VoiceGenerationStage(context=context))
+    registry.register(AudioMixStage(context=context))
+    registry.register(MotionGraphicsStage(context=context))
+    registry.register(VideoAssemblyStage(context=context))
+    registry.register(VideoRenderStage(context=context))
+    registry.register(MetadataStage(context=context))
+    registry.register(ThumbnailStage(context=context))
+    registry.register(PublisherStage(context=context))
 
     csv_file = Path(args.csv) if args.csv else settings.assets_dir / _DEFAULT_CSV_NAME
     job_input = TopicInput(

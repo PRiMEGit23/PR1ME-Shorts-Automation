@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+from pathlib import Path
 
 import pytest
 
@@ -50,7 +51,7 @@ class DuplicateStage(GoodStage):
     stage_id = "good"
 
 
-logger = logging.getLogger("test")
+logger: logging.LoggerAdapter = logging.LoggerAdapter(logging.getLogger("test"), {})
 
 
 def build_context() -> StageContext:
@@ -72,7 +73,7 @@ def test_stage_invalid_input_fails_fast() -> None:
 
     async def go() -> None:
         with pytest.raises(ModelValidationError):
-            await stage.run({"value": 123})  # type: ignore[arg-type]
+            await stage.run({"value": 123})
 
     asyncio.run(go())
 
@@ -143,7 +144,7 @@ def test_registry_instances_bypassed() -> None:
     assert registry.resolve("good") is instance
 
 
-def test_prompt_loader_finds_and_caches(tmp_path) -> None:
+def test_prompt_loader_finds_and_caches(tmp_path: Path) -> None:
     prompts = tmp_path / "prompts"
     prompts.mkdir()
     (prompts / "01_topic_generator.md").write_text("# Topic", encoding="utf-8")
@@ -161,7 +162,7 @@ def test_prompt_loader_finds_and_caches(tmp_path) -> None:
     asyncio.run(go())
 
 
-def test_prompt_loader_missing_raises(tmp_path) -> None:
+def test_prompt_loader_missing_raises(tmp_path: Path) -> None:
     prompts = tmp_path / "prompts"
     prompts.mkdir()
     loader = PromptLoader(prompts)

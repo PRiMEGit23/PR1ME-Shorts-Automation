@@ -43,9 +43,9 @@ src = ["src", "tests"]
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B", "ASYNC", "A"]
-# UP046: PG-695 type-param syntax (marginal churn on generics we already annotate).
-# B027: a no-op lifecycle hook (e.g. BaseProvider.close) is intentional.
-ignore = ["A003", "UP046", "B027"]
+# UP046/UP047: PEP-695 type-param syntax (marginal churn on generics we already annotate,
+# and the toolchain targets Python 3.11 for parsing).
+ignore = ["A003", "UP046", "UP047", "B027"]
 
 [tool.mypy]
 python_version = "3.12"
