@@ -10,12 +10,22 @@ from __future__ import annotations
 from typing import TypeVar
 
 from pr1me.core.stage_registry import StageRegistry
+from pr1me.stages.factcheck_stage import FactCheckStage
+from pr1me.stages.script_stage import ScriptStage
 from pr1me.stages.topic_stage import TopicStage
+from pr1me.stages.visual_stage import VisualStage
 
 #: Every concrete stage in this package, in registration order.
-AUTO_STAGES: tuple = (TopicStage,)
+AUTO_STAGES: tuple = (TopicStage, ScriptStage, FactCheckStage, VisualStage)
 
-__all__ = ["AUTO_STAGES", "TopicStage", "register_auto"]
+__all__ = [
+    "AUTO_STAGES",
+    "FactCheckStage",
+    "ScriptStage",
+    "TopicStage",
+    "VisualStage",
+    "register_auto",
+]
 
 StageT = TypeVar("StageT")
 

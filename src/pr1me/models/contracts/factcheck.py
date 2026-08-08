@@ -2,26 +2,32 @@
 
 from __future__ import annotations
 
-from pydantic import Field
+from pydantic import ConfigDict, Field
 
-from pr1me.models.common import ScriptCorrections
+from pr1me.models.common import ScriptCorrections, StableModel
 from pr1me.models.contracts.base import StageInput, StageOutput
 from pr1me.models.meta import Confidence, Severity
 
 
 class FactCheckInput(StageInput):
-    """Input for the fact-checker stage."""
+    """Input for the fact-checker stage: the script produced by prompt 02.
 
-    topic: str = Field(..., min_length=1)
-    script_hook: str
-    script_explanation: str
-    script_practical_insight: str
-    script_ending: str
+    The runner feeds the flattened outputs of the upstream stages; only the
+    narration blocks plus the topic seed are consumed here.
+    """
+
+    model_config = ConfigDict(extra="ignore")
+
+    topic: str | None = Field(default=None, min_length=1)
+    hook: str
+    explanation: str
+    practical_insight: str
+    ending: str
     word_count: int | None = Field(default=None, ge=1, le=120)
 
 
-class Finding(StageOutput):
-    """Per-block finding."""
+class Finding(StableModel):
+    """Per-block finding returned by the fact-checker."""
 
     block: str
     claim: str
@@ -29,7 +35,7 @@ class Finding(StageOutput):
     note: str
 
 
-class FactCheckOutput(StageOutput):
+class FactSummaryOutput(StageOutput):
     """Verdict for the supplied script. Mirrors prompt 03's schema."""
 
     verdict: str  # approved | needs_correction

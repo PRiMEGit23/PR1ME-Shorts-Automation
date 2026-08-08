@@ -2,14 +2,20 @@
 
 from __future__ import annotations
 
-from pydantic import Field
+from pydantic import ConfigDict, Field
 
 from pr1me.models.common import ScriptBlock
 from pr1me.models.contracts.base import StageInput, StageOutput
 
 
 class ScriptInput(StageInput):
-    """Input for the script generator stage."""
+    """Input for the script generator stage (the approved topic).
+
+    The runner feeds the flattened outputs of the upstream stages; only the
+    topic (and optional factual context) are consumed here.
+    """
+
+    model_config = ConfigDict(extra="ignore")
 
     topic: str = Field(..., min_length=1, max_length=60)
     factual_context: str | None = Field(default=None)

@@ -1,8 +1,13 @@
-"""``pr1me run`` command: run the topic stage against a sample CSV.
+"""``pr1me run`` command: run the content pipeline against a sample CSV.
 
-Bootstrap-only command. It wires the engine (prompt loader, DeepSeek provider,
-topic stage, pipeline runner) and writes the resulting topic to
-``output/topic.json``.
+Bootstrap command. It wires the engine (prompt loader, provider, registered
+stages, pipeline runner) and writes every completed stage's output to its
+canonical artifact under ``output/``:
+
+- ``output/topic.json``
+- ``output/script.json``
+- ``output/fact_summary.json``
+- ``output/visual_plan.json``
 """
 
 from __future__ import annotations
@@ -33,7 +38,14 @@ _DEFAULT_DIRECTIVE = (
     "avoid repeating content already covered."
 )
 _DEFAULT_CSV_NAME = "topics.csv"
-_DEFAULT_OUTPUT_NAME = "topic.json"
+
+#: stage_id -> default artifact filename written by ``pr1me run``.
+_STAGE_OUTPUTS: dict[str, str] = {
+    "topic": "topic.json",
+    "script": "script.json",
+    "fact_check": "fact_summary.json",
+    "visual": "visual_plan.json",
+}
 
 
 def _add_parser(sub: ArgumentParser) -> None:
@@ -52,9 +64,9 @@ def _add_parser(sub: ArgumentParser) -> None:
     sub.add_argument("--category", metavar="NAME", default=None, help="optional category focus")
 
 
-@register_command("run", "Run the pipeline and write the topic output.", add_parser=_add_parser)
+@register_command("run", "Run the content pipeline and write stage outputs.", add_parser=_add_parser)
 def run(args: Namespace, settings: Settings) -> int:
-    """Execute the topic stage against a CSV of recently used topics."""
+    """Execute the registered pipeline against a CSV of recently used topics."""
     return asyncio.run(_run(args, settings))
 
 
@@ -88,11 +100,34 @@ async def _run(args: Namespace, settings: Settings) -> int:
         logger.error("event=cli.run_failed", status=report.run_status.value)
         return EXIT_ERROR
 
-    output = _topic_output(report)
-    dest = Path(args.output) if args.output else settings.work_dir / _DEFAULT_OUTPUT_NAME
-    dest.write_text(json.dumps(output, indent=2), encoding="utf-8")
-    logger.info("event=cli.topic_written", path=str(dest), artifact=report.final_artifact)
+    written = _write_artifacts(report, settings.work_dir, topic_output=args.output)
+    logger.info("event=cli.artifacts_written", paths=written)
     return EXIT_OK
+
+
+def _write_artifacts(
+    report: RunReport,
+    work_dir: Path,
+    *,
+    topic_output: str | None = None,
+) -> list[str]:
+    """Write each completed stage's output to its canonical artifact filename.
+
+    ``topic_output`` overrides the topic artifact path (CLI ``--output``);
+    all other stages write to ``work_dir``.
+    """
+    written: list[str] = []
+    per_stage: dict[str, dict] = {}
+    for record in report.stages:
+        if record.status.value == "ok":
+            per_stage.setdefault(record.stage_id, record.output)
+    for stage_id, filename in _STAGE_OUTPUTS.items():
+        if stage_id not in per_stage:
+            continue
+        dest = Path(topic_output) if topic_output and stage_id == "topic" else work_dir / filename
+        dest.write_text(json.dumps(per_stage[stage_id], indent=2), encoding="utf-8")
+        written.append(str(dest))
+    return written
 
 
 def _read_topics_csv(path: Path) -> list[str]:
@@ -106,11 +141,3 @@ def _read_topics_csv(path: Path) -> list[str]:
             if topic:
                 topics.append(topic)
     return topics
-
-
-def _topic_output(report: RunReport) -> dict:
-    """Extract the validated topic payload from the run report."""
-    for record in report.stages:
-        if record.stage_id == "topic" and record.status.value == "ok":
-            return record.output
-    raise RuntimeError("topic stage produced no output")
