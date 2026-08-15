@@ -125,6 +125,19 @@ class ComfyUIRender(BaseModel):
 # ------------------------------------------------------------------ injection -
 
 
+#: Compatibility aliases for sampler names injected with A1111-style naming
+#: that the ComfyUI sampler list does not contain (provider-side normalisation).
+_SAMPLER_ALIASES: dict[str, str] = {
+    "euler_a": "euler_ancestral",
+}
+
+
+def _normalize_variable(name: str, value: Any) -> Any:
+    if name == "sampler" and isinstance(value, str):
+        return _SAMPLER_ALIASES.get(value, value)
+    return value
+
+
 def inject_variables(workflow: Mapping[str, Any], variables: Mapping[str, Any]) -> dict[str, Any]:
     """Deep-copy ``workflow`` and inject ``variables`` into its node inputs.
 
@@ -148,7 +161,7 @@ def inject_variables(workflow: Mapping[str, Any], variables: Mapping[str, Any]) 
             if isinstance(value, str):
                 placeholder = _whole_placeholder(value)
                 if placeholder is not None and placeholder in variables:
-                    inputs[key] = variables[placeholder]
+                    inputs[key] = _normalize_variable(placeholder, variables[placeholder])
                 else:
                     inputs[key] = _embedded_substitute(value, variables)
     return graph

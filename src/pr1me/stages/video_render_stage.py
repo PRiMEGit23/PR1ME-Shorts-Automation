@@ -34,6 +34,7 @@ from pr1me.providers.video_renderer import (
     VideoRendererProvider,
     VideoRenderRequest,
 )
+from pr1me.providers.voice import wav_duration
 
 _ENV_OUTPUT_DIR = "PR1ME_RENDER_OUTPUT_DIR"
 
@@ -42,6 +43,10 @@ _FILENAME = "short.mp4"
 
 #: Hard ceilings for the platform contract (PIPELINE_SPEC).
 _MAX_FILE_BYTES = 200_000_000
+
+#: Tolerance when comparing the rendered duration against the narration
+#: (frame rounding at the target fps plus encoder container padding).
+_NARRATION_EPSILON_SECONDS = 0.2
 
 
 class RenderValidationError(PipelineError):
@@ -87,6 +92,7 @@ class VideoRenderStage(BaseStage[RenderInput, RenderManifestOutput]):
         )
         render = await provider.render(request, output_dir=output_dir, filename=_FILENAME)
         self._validate_render(render)
+        self._verify_narration_coverage(payload, render)
         self._verify_checksum(render)
 
         manifest = RenderManifestOutput(
@@ -110,6 +116,7 @@ class VideoRenderStage(BaseStage[RenderInput, RenderManifestOutput]):
                     "single_video_file",
                     "mp4_container_ok",
                     "duration_within_budget",
+                    "narration_not_cut",
                     "file_size_within_bounds",
                     "checksum_verified",
                 ],
@@ -163,6 +170,37 @@ class VideoRenderStage(BaseStage[RenderInput, RenderManifestOutput]):
             raise RenderValidationError(
                 f"rendered file exceeds the {_MAX_FILE_BYTES} byte ceiling",
                 detail={"file": render.file, "bytes": render.size_bytes},
+            )
+
+    def _verify_narration_coverage(self, payload: RenderInput, render: VideoRender) -> None:
+        """Guarantee the final export never cuts the narration.
+
+        The mastered track is expected to be a WAV (the audio mix provider's
+        default); the true duration is probed from the container. When the
+        master cannot be probed the check is skipped with a warning rather than
+        guessed.
+        """
+        master = payload.tracks.audio.file
+        try:
+            data = Path(master).read_bytes()
+        except OSError as exc:
+            raise RenderValidationError(f"cannot read master audio {master}: {exc}") from exc
+        narration_seconds, _ = wav_duration(data)
+        if narration_seconds <= 0:
+            self._logger.warning(
+                "event=video_render.narration_unprobeable",
+                file=master,
+                note="skipping the narration coverage check",
+            )
+            return
+        if render.duration_seconds + _NARRATION_EPSILON_SECONDS < narration_seconds:
+            raise RenderValidationError(
+                "rendered file is shorter than the narration; the narration would be cut",
+                detail={
+                    "file": render.file,
+                    "rendered_seconds": render.duration_seconds,
+                    "narration_seconds": narration_seconds,
+                },
             )
 
     def _verify_checksum(self, render: VideoRender) -> None:

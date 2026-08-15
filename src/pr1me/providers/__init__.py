@@ -37,6 +37,7 @@ from pr1me.providers.comfyui import (
     inject_variables,
 )
 from pr1me.providers.deepseek import DeepSeekProvider
+from pr1me.providers.ollama import OllamaProvider, OllamaProviderError
 from pr1me.providers.registry import ProviderRegistry
 from pr1me.providers.video_renderer import (
     FFmpegVideoRenderer,
@@ -99,6 +100,8 @@ __all__ = [
     "HTTPVoiceBackend",
     "Message",
     "NoopProvider",
+    "OllamaProvider",
+    "OllamaProviderError",
     "ProviderRegistry",
     "StructuredCompletion",
     "Usage",

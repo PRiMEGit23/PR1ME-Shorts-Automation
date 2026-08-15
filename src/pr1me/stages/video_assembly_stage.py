@@ -8,8 +8,11 @@ never produces an MP4.
 The stage owns the deterministic boundary: the timeline frame rate, the cut
 policy (every shot boundary is a hard cut), the voice/audio placement
 (voice spans the timeline, the mastered track starts at frame 0 and is never
-re-ducked), and the overlay-to-shot pinning. All media timing comes from the
-approved manifests; nothing is invented.
+re-ducked), the overlay-to-shot pinning, and the narration-derived timeline
+target (``video = narration + intro_padding + outro_padding``; the shot plan
+is uniformly stretched or compressed onto that target so the final video
+never cuts the narration). All media timing comes from the approved
+manifests; nothing is invented.
 """
 
 from __future__ import annotations
@@ -45,6 +48,10 @@ _MASTER_VOLUME = 1.0
 #: Temporal equality tolerance when checking shot continuity (seconds).
 _EPSILON_SECONDS = 1e-9
 
+#: Overlay hold bounds enforced by the motion contract (1.5-4s channel policy).
+_MIN_OVERLAY_SECONDS = 1.5
+_MAX_OVERLAY_SECONDS = 4.0
+
 
 class AssemblyValidationError(PipelineError):
     """The manifests cannot be combined into one valid master timeline."""
@@ -78,9 +85,14 @@ class VideoAssemblyStage(BaseStage[VideoAssemblyInput, AssemblyOutput]):
         )
 
         clips = self._plan_clips(payload, fps)
-        master_asset, master = self._master_track(payload, clips, fps)
+        master_asset = self._master_asset(payload)
+        target_seconds = self._target_seconds(master_asset, clips)
+        factor = self._timeline_factor(clips, target_seconds)
+        raw_clips = clips
+        clips = self._scale_clips(raw_clips, factor, fps)
+        master = self._master_track(master_asset, clips, fps)
         voice = self._voice_track(master_asset, clips, fps)
-        overlays = self._attach_overlays(payload, clips, fps)
+        overlays = self._attach_overlays(payload, raw_clips, clips, fps, factor)
         cuts = self._build_cuts(clips)
         files = self._collect_files(clips, voice, master)
         total_frames = clips[-1].end_frame
@@ -106,6 +118,7 @@ class VideoAssemblyStage(BaseStage[VideoAssemblyInput, AssemblyOutput]):
                     "master_audio_referenced",
                     "overlays_pinned_to_shots",
                     "all_files_exist",
+                    "video_never_shorter_than_narration",
                 ],
             ),
         )
@@ -117,6 +130,9 @@ class VideoAssemblyStage(BaseStage[VideoAssemblyInput, AssemblyOutput]):
             n_overlays=len(overlays),
             n_cuts=len(cuts),
             master=master.file,
+            narration_seconds=master_asset.duration_seconds,
+            target_seconds=target_seconds,
+            timeline_factor=factor,
         )
         return output
 
@@ -172,12 +188,7 @@ class VideoAssemblyStage(BaseStage[VideoAssemblyInput, AssemblyOutput]):
             transition=_CUT_TRANSITION,
         )
 
-    def _master_track(
-        self,
-        payload: VideoAssemblyInput,
-        clips: list[VideoClip],
-        fps: int,
-    ) -> tuple[AudioAsset, AudioTrack]:
+    def _master_asset(self, payload: VideoAssemblyInput) -> AudioAsset:
         if not payload.assets:
             raise AssemblyValidationError(
                 "audio manifest carries no mastered track to reference",
@@ -190,6 +201,70 @@ class VideoAssemblyStage(BaseStage[VideoAssemblyInput, AssemblyOutput]):
                 detail={"file": master.file, "duration_seconds": master.duration_seconds},
             )
         self._require_file(master.file, kind="audio", ref="audio_mix")
+        return master
+
+    def _target_seconds(self, master: AudioAsset, clips: list[VideoClip]) -> float:
+        """Compute the narration-derived timeline target for the Short.
+
+        ``video_duration = narration + intro_padding + outro_padding`` (both
+        paddings optional, operator-configured, never hardcoded). The target is
+        capped at the platform duration budget so the render never exceeds it.
+        """
+        target = (
+            master.duration_seconds
+            + self.context.settings.intro_padding_seconds
+            + self.context.settings.outro_padding_seconds
+        )
+        budget = self.context.settings.target_max_duration_seconds
+        if budget > 0 and target > budget:
+            self._logger.warning(
+                "event=video_assembly.target_clamped",
+                narration_seconds=master.duration_seconds,
+                target_seconds=target,
+                budget_seconds=budget,
+            )
+            return budget
+        return target
+
+    @staticmethod
+    def _timeline_factor(clips: list[VideoClip], target_seconds: float) -> float:
+        """Uniform stretch/compress factor mapping the plan onto the target.
+
+        A factor above 1.0 holds every shot longer (motion assets shorter than
+        the narration are extended); below 1.0 trims trailing dead air so the
+        final video matches the narration length.
+        """
+        total = clips[-1].end_second
+        if total <= 0:
+            return 1.0
+        return target_seconds / total
+
+    def _scale_clips(self, clips: list[VideoClip], factor: float, fps: int) -> list[VideoClip]:
+        if abs(factor - 1.0) <= _EPSILON_SECONDS:
+            return clips
+        boundaries = [0.0]
+        boundaries.extend(clip.end_second for clip in clips)
+        frames = [_to_frame(boundary * factor, fps) for boundary in boundaries]
+        for index in range(1, len(frames)):
+            if frames[index] <= frames[index - 1]:
+                frames[index] = frames[index - 1] + 1
+        scaled: list[VideoClip] = []
+        for index, clip in enumerate(clips):
+            start, end = frames[index], frames[index + 1]
+            scaled.append(
+                VideoClip(
+                    shot_id=clip.shot_id,
+                    file=clip.file,
+                    start_frame=start,
+                    end_frame=end,
+                    start_second=start / fps,
+                    end_second=end / fps,
+                    transition=clip.transition,
+                )
+            )
+        return scaled
+
+    def _master_track(self, master: AudioAsset, clips: list[VideoClip], fps: int) -> AudioTrack:
         end_seconds = min(master.duration_seconds, clips[-1].end_second)
         end_frame = _to_frame(end_seconds, fps)
         if end_frame <= 0:
@@ -197,7 +272,7 @@ class VideoAssemblyStage(BaseStage[VideoAssemblyInput, AssemblyOutput]):
                 "mastered audio collapses to zero frames at the target fps",
                 detail={"file": master.file, "duration_seconds": master.duration_seconds},
             )
-        return master, AudioTrack(
+        return AudioTrack(
             file=master.file,
             start_frame=0,
             end_frame=end_frame,
@@ -218,19 +293,39 @@ class VideoAssemblyStage(BaseStage[VideoAssemblyInput, AssemblyOutput]):
     def _attach_overlays(
         self,
         payload: VideoAssemblyInput,
+        raw_clips: list[VideoClip],
         clips: list[VideoClip],
         fps: int,
+        factor: float,
     ) -> list[AssemblyOverlay]:
         incoming = sorted(payload.overlays, key=lambda o: o.id)
         overlays: list[AssemblyOverlay] = []
         for overlay in incoming:
-            index = self._owner_index(overlay, clips)
-            start_frame = _to_frame(overlay.start_second, fps)
-            end_frame = _to_frame(overlay.end_second, fps)
+            index = self._owner_index(overlay, raw_clips)
             owner = clips[index]
+            raw_owner = raw_clips[index]
+            if overlay.start_second < raw_owner.start_second or (
+                overlay.end_second > raw_owner.end_second + _EPSILON_SECONDS
+            ):
+                raise AssemblyValidationError(
+                    "overlay straddles a shot boundary",
+                    detail={
+                        "overlay_id": overlay.id,
+                        "start_second": overlay.start_second,
+                        "end_second": overlay.end_second,
+                        "owner_shot": owner.shot_id,
+                        "owner_end_second": raw_owner.end_second,
+                    },
+                )
+            scaled = self._scale_overlay(overlay, factor)
+            start_frame = max(_to_frame(scaled.start_second, fps), owner.start_frame)
+            end_frame = min(_to_frame(scaled.end_second, fps), owner.end_frame)
+            if end_frame <= start_frame:
+                start_frame = min(start_frame, owner.end_frame - 1)
+                end_frame = start_frame + 1
             if start_frame < owner.start_frame or end_frame > owner.end_frame or end_frame <= start_frame:
                 raise AssemblyValidationError(
-                    "overlay straddles a shot boundary or collapses to zero frames",
+                    "overlay collapses to zero frames",
                     detail={
                         "overlay_id": overlay.id,
                         "start_frame": start_frame,
@@ -252,6 +347,30 @@ class VideoAssemblyStage(BaseStage[VideoAssemblyInput, AssemblyOutput]):
                 )
             )
         return overlays
+
+    @staticmethod
+    def _scale_overlay(overlay: MotionOverlay, factor: float) -> MotionOverlay:
+        """Rescale one overlay onto the normalized timeline.
+
+        The hold is scaled with the timeline, then clamped back into the
+        channel's 1.5-4s hold policy (the motion contract enforces the same
+        bounds), so stretching never produces an out-of-contract overlay.
+        """
+        if abs(factor - 1.0) <= _EPSILON_SECONDS:
+            return overlay
+        start = overlay.start_second * factor
+        scaled_duration = overlay.duration_seconds * factor
+        duration = min(_MAX_OVERLAY_SECONDS, max(_MIN_OVERLAY_SECONDS, scaled_duration))
+        return MotionOverlay(
+            id=overlay.id,
+            text=overlay.text,
+            start_second=start,
+            end_second=start + duration,
+            duration_seconds=duration,
+            pos_x=overlay.pos_x,
+            pos_y=overlay.pos_y,
+            style=overlay.style,
+        )
 
     def _owner_index(self, overlay: MotionOverlay, clips: list[VideoClip]) -> int:
         for index, clip in enumerate(clips):

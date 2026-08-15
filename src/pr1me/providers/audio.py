@@ -114,17 +114,17 @@ def build_mix_filter(has_bgm: bool, has_sfx: bool, target_lufs: int, sample_rate
     """
     parts = [
         f"[0:a]aresample={sample_rate}[voice0]",
-        "[voice0]asplit=2[v_main][v_side]",
     ]
     if has_bgm:
         parts.append(
+            "[voice0]asplit=2[v_main][v_side]; "
             f"[1:a]aresample={sample_rate}[bgm0]; "
             "[bgm0]volume=0.75[bgm_src]; "
             "[bgm_src][v_side]sidechaincompress=threshold=0.05:ratio=20:attack=10:release=600[bgm_duck]; "
             "[v_main][bgm_duck]amix=inputs=2:duration=first:normalize=0[stage_a]"
         )
     else:
-        parts.append("[v_main]anull[stage_a]")
+        parts.append("[voice0]anull[stage_a]")
     if has_sfx:
         parts.append(
             f"[2:a]aresample={sample_rate}[sfx_raw]; "

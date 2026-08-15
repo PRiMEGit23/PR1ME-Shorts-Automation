@@ -88,6 +88,7 @@ class VoiceSynthesisRequest(BaseModel):
     voice: str = _DEFAULT_VOICE
     sample_rate: int = Field(_DEFAULT_SAMPLE_RATE, ge=1, le=768000)
     format: str = _DEFAULT_FORMAT
+    voice_pacing: float = Field(_DEFAULT_SAMPLE_RATE, ge=0.1, le=3.0, description="Speed multiplier: <1=slower, >1=faster")
 
 
 class VoiceRender(BaseModel):
@@ -129,6 +130,8 @@ def wav_duration(data: bytes) -> tuple[float, int]:
         elif chunk_id == b"data":
             if byte_rate <= 0:
                 return 0.0, sample_rate
+            if size == 0xFFFFFFFF:
+                size = len(data) - pos - 8
             return size / byte_rate, sample_rate
         pos += 8 + size + (size & 1)
     return 0.0, sample_rate

@@ -66,6 +66,67 @@ def _mp4_bytes(duration: float = 1.0) -> bytes:
     return ftyp + moov
 
 
+def _box(btype: bytes, content: bytes) -> bytes:
+    return struct.pack(">I", 8 + len(content)) + btype + content
+
+
+def _fullbox(version: int, flags: int, body: bytes) -> bytes:
+    return bytes([version]) + flags.to_bytes(3, "big") + body
+
+
+def _fragmented_mp4(stale_mvhd_seconds: float = 1.0) -> bytes:
+    """A fragmented MP4 whose mvhd only covers the first fragment.
+
+    Track 1 (timescale 1000): fragment A has 2 samples of 1000ms starting at
+    0, fragment B has 1 sample of 1000ms starting at 2000ms -> ends at 3.0s.
+    Track 2 (timescale 1000): 2 samples of 500ms starting at 0 -> ends 1.0s.
+    The stale mvhd says ``stale_mvhd_seconds`` (1.0 by default); the true
+    movie duration is 3.0 seconds.
+    """
+    mvhd = _box(
+        b"mvhd",
+        _fullbox(0, 0, struct.pack(">II", 0, 0) + struct.pack(">II", 1000, int(stale_mvhd_seconds * 1000))),
+    )
+    mdhd = _box(
+        b"mdhd",
+        _fullbox(
+            0,
+            0,
+            struct.pack(">II", 0, 0) + struct.pack(">I", 1000) + struct.pack(">I", 0) + b"\x00" * 4,
+        ),
+    )
+    tkhd = lambda track_id: _box(  # noqa: E731
+        b"tkhd", _fullbox(0, 0x3, struct.pack(">IIII", 0, 0, track_id, 0) + b"\x00" * 16)
+    )
+    trak = lambda track_id: _box(b"trak", tkhd(track_id) + _box(b"mdia", mdhd))  # noqa: E731
+    moov = _box(b"moov", mvhd + trak(1) + trak(2) + _box(b"mvex", b""))
+
+    def traf(track_id: int, default_duration: int, base: int, count: int) -> bytes:
+        tfhd = _box(b"tfhd", _fullbox(0, 0x8, struct.pack(">II", track_id, default_duration)))
+        tfdt = _box(b"tfdt", _fullbox(0, 0, struct.pack(">I", base)))
+        trun = _box(b"trun", _fullbox(0, 0, struct.pack(">I", count)))
+        return _box(b"traf", tfhd + tfdt + trun)
+
+    def moof(*trafs: bytes) -> bytes:
+        mfhd = _box(b"mfhd", _fullbox(0, 0, struct.pack(">I", 1)))
+        return _box(b"moof", mfhd + b"".join(trafs))
+
+    ftyp = struct.pack(">I", 8 + 20) + b"ftyp" + b"isom" + struct.pack(">I", 0x200) + b"isomiso2mp41"
+    fragments = moof(traf(1, 1000, 0, 2), traf(2, 500, 0, 2)) + moof(traf(1, 1000, 2000, 1))
+    return ftyp + moov + fragments
+
+
+def _wav_bytes(seconds: float, rate: int = 8000) -> bytes:
+    """A real PCM WAV of ``seconds`` of silence (mono, 16-bit)."""
+    frames = int(seconds * rate)
+    data = b"\x00\x00" * frames
+    byte_rate = rate * 2
+    header = b"RIFF" + struct.pack("<I", 36 + len(data)) + b"WAVE"
+    header += b"fmt " + struct.pack("<IHHIIHH", 16, 1, 1, rate, byte_rate, 2, 16)
+    header += b"data" + struct.pack("<I", len(data))
+    return header + data
+
+
 def _assets(tmp_path: Path) -> tuple[Path, Path]:
     image = tmp_path / "shot_001.png"
     image.write_bytes(_PNG)
@@ -144,6 +205,12 @@ def test_mp4_duration_reads_mvhd() -> None:
     assert mp4_duration(b"RIFF" + b"\x00" * 40) == 0.0
 
 
+def test_mp4_duration_reconstructs_fragmented_files() -> None:
+    # The stale mvhd says 1.0s; the moof sample tables say 3.0s.
+    assert mp4_duration(_fragmented_mp4()) == pytest.approx(3.0)
+    assert mp4_duration(_fragmented_mp4(stale_mvhd_seconds=0.5)) == pytest.approx(3.0)
+
+
 def test_build_render_command_structure(tmp_path: Path) -> None:
     request = _request(tmp_path)
     argv = build_render_command(["ffmpeg"], request)
@@ -165,11 +232,19 @@ class _FakeVideoRenderer(VideoRenderer):
 
     name = "fake"
 
-    def __init__(self, *, fail_first: int = 0, timeout_every: bool = False, garbage: bool = False) -> None:
+    def __init__(
+        self,
+        *,
+        fail_first: int = 0,
+        timeout_every: bool = False,
+        garbage: bool = False,
+        fragmented: bool = False,
+    ) -> None:
         self.calls: list[VideoRenderRequest] = []
         self.failures_left = fail_first
         self.timeout_every = timeout_every
         self.garbage = garbage
+        self.fragmented = fragmented
 
     async def render(self, request: VideoRenderRequest) -> bytes:
         self.calls.append(request)
@@ -180,6 +255,8 @@ class _FakeVideoRenderer(VideoRenderer):
             raise TimeoutError()
         if self.garbage:
             return b"not an mp4"
+        if self.fragmented:
+            return _fragmented_mp4()
         return _mp4_bytes(2.5)
 
     async def close(self) -> None:
@@ -237,6 +314,13 @@ def test_provider_raises_timeout_when_exhausted(tmp_path: Path) -> None:
     )
     with pytest.raises(VideoRenderTimeoutError):
         asyncio.run(provider.render(_request(tmp_path), output_dir=tmp_path / "out"))
+
+
+def test_provider_reports_true_duration_for_fragmented_mp4(tmp_path: Path) -> None:
+    backend = _FakeVideoRenderer(fragmented=True)
+    provider = VideoRendererProvider(backend=backend, max_retries=1)
+    render = asyncio.run(provider.render(_request(tmp_path), output_dir=tmp_path / "out"))
+    assert render.duration_seconds == pytest.approx(3.0)
 
 
 def test_provider_rejects_non_mp4_container(tmp_path: Path) -> None:
@@ -364,6 +448,37 @@ def test_stage_fails_when_duration_exceeds_budget(tmp_path: Path) -> None:
     async def go() -> None:
         with pytest.raises(RenderValidationError, match="exceeds"):
             await stage.run(_payload(tmp_path))
+
+    asyncio.run(go())
+
+
+def test_stage_reports_narration_not_cut_when_duration_covers_narration(tmp_path: Path) -> None:
+    fake = _FakeRendererProvider(duration=12.0)
+    stage = _stage(tmp_path, fake)
+    payload = _assembly(tmp_path).model_dump(mode="json")
+    master = tmp_path / "master.wav"
+    master.write_bytes(_wav_bytes(10.0))
+    payload["tracks"]["audio"]["file"] = str(master)
+
+    async def go() -> None:
+        result: RenderManifestOutput = await stage.run(payload)
+        assert result.validation.status.value == "ok"
+        assert "narration_not_cut" in result.validation.checks
+
+    asyncio.run(go())
+
+
+def test_stage_fails_when_render_is_shorter_than_narration(tmp_path: Path) -> None:
+    fake = _FakeRendererProvider(duration=3.0)
+    stage = _stage(tmp_path, fake)
+    payload = _assembly(tmp_path).model_dump(mode="json")
+    master = tmp_path / "master.wav"
+    master.write_bytes(_wav_bytes(10.0))
+    payload["tracks"]["audio"]["file"] = str(master)
+
+    async def go() -> None:
+        with pytest.raises(RenderValidationError, match="shorter than the narration"):
+            await stage.run(payload)
 
     asyncio.run(go())
 

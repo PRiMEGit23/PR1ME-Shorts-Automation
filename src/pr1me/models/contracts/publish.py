@@ -47,6 +47,9 @@ class PublishMetadata(StableModel):
     made_for_kids: bool = False
     primary_keyword: str = Field(..., min_length=1)
     secondary_keywords: list[str] = Field(default_factory=list)
+    subtitle_language: str = Field("en", min_length=2, description="ISO 639-1 language code for subtitles")
+    subtitle_timing: str | None = Field(default=None, description="Subtitle timing schema (start-end pairs in ms)")
+    subtitle_file: str | None = Field(default=None, description="Path to generated SRT subtitle file")
     search_intent: SearchIntent
     target_audience: TargetAudience
     language: str = Field("en", min_length=1)

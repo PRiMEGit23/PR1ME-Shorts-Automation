@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import base64
+import csv
 import http.server
 import importlib
 import json
@@ -50,7 +51,7 @@ _FFMPEG_STUB = (
     "def box(t, payload):\n"
     "    return struct.pack('>I', 8 + len(payload)) + t.encode() + payload\n"
     "mvhd = box('mvhd', b'\\x00\\x00\\x00\\x00' + struct.pack('>II', 0, 0)\n"
-    "    + struct.pack('>II', 1000, 1000) + struct.pack('>I', 0x00010000)\n"
+    "    + struct.pack('>II', 1000, 6000) + struct.pack('>I', 0x00010000)\n"
     "    + struct.pack('>H', 0x0100) + b'\\x00' * 10 + b'\\x00' * 36\n"
     "    + b'\\x00' * 24 + struct.pack('>I', 2))\n"
     "mp4 = box('ftyp', b'isom' + struct.pack('>I', 0x00000200) + b'isomiso2mp41') + box('moov', mvhd)\n"
@@ -59,17 +60,17 @@ _FFMPEG_STUB = (
     "    sys.stdout.buffer.flush()\n"
     "else:\n"
     "    wav = (\n"
-    "        b'RIFF' + struct.pack('<I', 36 + 2000) + b'WAVE'\n"
+    "        b'RIFF' + struct.pack('<I', 36 + 576000) + b'WAVE'\n"
     "        + b'fmt ' + struct.pack('<I', 16) + struct.pack('<HH', 1, 1)\n"
     "        + struct.pack('<II', 48000, 96000) + struct.pack('<HH', 2, 16)\n"
-    "        + b'data' + struct.pack('<I', 2000) + bytes(2000)\n"
+    "        + b'data' + struct.pack('<I', 576000) + bytes(576000)\n"
     "    )\n"
     "    sys.stdout.buffer.write(wav)\n"
     "    sys.stdout.buffer.flush()\n"
 )
 _MASTER_WAV = (
     b"RIFF"
-    + struct.pack("<I", 36 + 2000)
+    + struct.pack("<I", 36 + 576000)
     + b"WAVE"
     + b"fmt "
     + struct.pack("<I", 16)
@@ -77,8 +78,8 @@ _MASTER_WAV = (
     + struct.pack("<II", 48000, 96000)
     + struct.pack("<HH", 2, 16)
     + b"data"
-    + struct.pack("<I", 2000)
-    + bytes(2000)
+    + struct.pack("<I", 576000)
+    + bytes(576000)
 )
 
 #: Canned chat-completion replies, selected by a system-prompt marker.
@@ -380,15 +381,33 @@ def test_run_command_writes_all_stage_artifacts(tmp_path: Path, monkeypatch) -> 
     visual = json.loads((dirs["work"] / "visual_plan.json").read_text(encoding="utf-8"))
     assert visual["total_seconds"] == 12
 
+    visual_architecture = json.loads(
+        (dirs["work"] / "visual_architecture.json").read_text(encoding="utf-8")
+    )
+    assert len(visual_architecture["comfyui_ready"]) == 8
+    assert visual_architecture["validation"]["status"] == "ok"
+    assert all(shot["score"] >= 95 for shot in visual_architecture["validation"]["prompts"])
+
+    workflow = json.loads((dirs["work"] / "workflow.json").read_text(encoding="utf-8"))
+    assert workflow["total"] == 8
+    assert workflow["validation"]["status"] == "ok"
+    first_frame = workflow["frames"][0]
+    assert first_frame["shot_id"] == 1
+    assert first_frame["block"] == "hook"
+    assert first_frame["camera"] and first_frame["composition"]
+    assert first_frame["motion"] and first_frame["transition"]
+    assert first_frame["positive_prompt"] != first_frame["negative_prompt"]
+
     images_dir = dirs["work"] / "images"
-    image_file = images_dir / "shot_001.png"
-    assert image_file.is_file(), "expected one rendered PNG in output/images/"
-    assert image_file.read_bytes().startswith(b"\x89PNG")
+    image_files = sorted(images_dir.glob("shot_*.png"))
+    assert len(image_files) == 8, "expected eight rendered PNGs in output/images/"
+    assert image_files[0].read_bytes().startswith(b"\x89PNG")
 
     manifest = json.loads((dirs["work"] / "image_manifest.json").read_text(encoding="utf-8"))
-    assert manifest["total"] == 1
+    assert manifest["total"] == 8
     assert manifest["validation"]["status"] == "ok"
-    assert manifest["images"][0]["file"] == str(image_file)
+    assert [image["metadata"]["shot_id"] for image in manifest["images"]] == list(range(1, 9))
+    assert manifest["images"][0]["file"] == str(image_files[0])
     assert manifest["images"][0]["metadata"]["shot_id"] == 1
 
     audio_dir = dirs["work"] / "audio"
@@ -425,11 +444,11 @@ def test_run_command_writes_all_stage_artifacts(tmp_path: Path, monkeypatch) -> 
     assert assembly["total_frames"] == 6 * 30
     assert assembly["fps"] == 30
     assert assembly["validation"]["status"] == "ok"
-    assert assembly["tracks"]["video"][0]["file"] == str(image_file)
-    assert assembly["tracks"]["video"][0]["end_frame"] == 6 * 30
+    assert assembly["tracks"]["video"][0]["file"] == str(image_files[0])
+    assert assembly["tracks"]["video"][0]["end_frame"] == 27
     assert assembly["tracks"]["audio"]["file"] == str(dirs["work"] / "audio" / "master.wav")
     assert assembly["tracks"]["voice"]["file"] == str(audio_file)
-    assert [entry["kind"] for entry in assembly["files"]] == ["video", "voice", "audio"]
+    assert [entry["kind"] for entry in assembly["files"]] == ["video"] * 8 + ["voice", "audio"]
 
     short = dirs["work"] / "short.mp4"
     assert short.is_file(), "expected one rendered MP4 in output/"
@@ -441,7 +460,7 @@ def test_run_command_writes_all_stage_artifacts(tmp_path: Path, monkeypatch) -> 
     assert render["validation"]["status"] == "ok"
     assert render["metadata"]["container"] == "mp4"
     assert render["metadata"]["fps"] == 30
-    assert render["metadata"]["duration_seconds"] == 1.0
+    assert render["metadata"]["duration_seconds"] == 6.0
     assert render["metadata"]["backend"] == "ffmpeg"
 
     metadata = json.loads((dirs["work"] / "metadata.json").read_text(encoding="utf-8"))
@@ -469,3 +488,66 @@ def test_run_command_writes_all_stage_artifacts(tmp_path: Path, monkeypatch) -> 
     assert publish["dry_run"] is False
     assert publish["upload_payload"] is None
     assert publish["validation"]["status"] == "ok"
+
+
+def test_run_production_pipeline_end_to_end(tmp_path: Path, monkeypatch) -> None:
+    """`pr1me run --row ... --run-dir ...` runs the deterministic pipeline."""
+    dirs = _workspace(tmp_path)
+    voice_port = _start_mock(_MockVoice)
+    monkeypatch.setenv("PR1ME_VOICE_BASE_URL", f"http://127.0.0.1:{voice_port}")
+    monkeypatch.setenv("PR1ME_VOICE_MAX_RETRIES", "1")
+    monkeypatch.setenv("PR1ME_RENDER_FFMPEG_BIN", f'"{sys.executable}" "{dirs["ffmpeg_stub"]}"')
+    monkeypatch.setenv("PR1ME_RENDER_MAX_RETRIES", "1")
+    monkeypatch.setenv("PR1ME_ASSETS_DIR", str(dirs["assets"]))
+    monkeypatch.setenv("PR1ME_WORK_DIR", str(dirs["work"]))
+
+    knowledge_csv = dirs["assets"] / "knowledge_base.csv"
+    with knowledge_csv.open("w", encoding="utf-8", newline="") as handle:
+        writer = csv.writer(handle)
+        writer.writerow(
+            ["topic", "category", "subcategory", "keywords", "search_intent",
+             "viewer_level", "engineering_summary", "scene_count"]
+        )
+        writer.writerow(
+            [
+                "Infill Pattern Comparisons",
+                "Slicer & Print Settings",
+                "Infill",
+                json.dumps(["gyroid", "cubic", "grid"]),
+                "what infill pattern is strongest",
+                "Intermediate",
+                "Gyroid is the engineering favorite.",
+                "5",
+            ]
+        )
+
+    run_dir = tmp_path / "run"
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        ["pr1me", "run", "--row", "Infill Pattern Comparisons", "--run-dir", str(run_dir)],
+    )
+    cli = importlib.import_module("pr1me.cli.main")
+    result = cli.main()
+
+    assert result == EXIT_OK
+    assert (run_dir / "manifest.json").is_file()
+    assert (run_dir / "reports" / "execution_report.json").is_file()
+    assert (run_dir / "events.json").is_file()
+    assert (run_dir / "pipeline_context.json").is_file()
+    for scene_id in ("S1", "S2", "S3", "S4", "S5"):
+        assert (run_dir / "images" / f"{scene_id}.png").is_file()
+    assert (run_dir / "audio" / "narration.wav").is_file()
+    assert (run_dir / "subtitles" / "narration.srt").is_file()
+    assert (run_dir / "video" / "short.mp4").is_file()
+    assert (run_dir / "video" / "short.mp4").read_bytes()[4:8] == b"ftyp"
+    assert (run_dir / "thumbnail" / "thumbnail.png").is_file()
+    assert (run_dir / "metadata" / "metadata.json").is_file()
+
+    manifest = json.loads((run_dir / "manifest.json").read_text(encoding="utf-8"))
+    assert manifest["status"] == "complete"
+    assert manifest["topic"] == "Infill Pattern Comparisons"
+
+    publish = json.loads((run_dir / "publish_manifest.json").read_text(encoding="utf-8"))
+    assert publish["dry_run"] is True
+    assert publish["video_id"].startswith("dry-run-")

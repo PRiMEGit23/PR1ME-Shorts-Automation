@@ -98,14 +98,18 @@ class VideoRenderRequest(BaseModel):
     segments: list[RenderSegment] = Field(min_length=1)
     audio: str = Field(..., min_length=1)
     fps: int = Field(..., ge=1, le=240)
-    width: int = Field(..., ge=1)
     height: int = Field(..., ge=1)
+    width: int = Field(..., ge=1)
     codec: str = _DEFAULT_CODEC
     container: str = _DEFAULT_CONTAINER
     pixel_format: str = _DEFAULT_PIXEL_FORMAT
     crf: int = Field(_DEFAULT_CRF, ge=0, le=51)
     audio_codec: str = _DEFAULT_AUDIO_CODEC
     audio_bitrate_kbps: int = Field(_DEFAULT_AUDIO_BITRATE_KBPS, ge=16, le=1024)
+    # Audio ducking: ratio (0.0-1.0) to lower background music when narration plays
+    audio_ducking_ratio: float = Field(0.5, ge=0.0, le=1.0, description="How much to duck bg music during narration (0.5=50%)")
+    # Background music file path (optional, mixed with narration)
+    background_music: str | None = Field(None, description="Optional background music file to mix with narration")
 
 
 class VideoRender(BaseModel):
@@ -154,68 +158,267 @@ def _iter_boxes(data: bytes) -> list[tuple[bytes, bytes]]:
 
 
 def mp4_duration(data: bytes) -> float:
-    """Return the duration (seconds) declared by the MP4 ``moov/mvhd`` box.
+    """Return the duration (seconds) declared by an MP4 container.
 
-    Reads only the container header: zero for anything that is not a valid
-    version-0 MP4. Returns ``0.0`` for unknown structures.
+    Fragmented MP4s (the ``frag_keyframe`` output this renderer produces) carry
+    a stale ``moov/mvhd`` duration that only covers the initial fragment; the
+    real duration must be reconstructed from the ``moof`` sample tables
+    (``tfdt`` base decode time + ``trun`` sample durations). Non-fragmented
+    files fall back to ``moov/mvhd``. Returns ``0.0`` for unknown structures.
     """
     if len(data) < 12 or data[4:8] != _FTYP_MAGIC:
         return 0.0
+    moov: bytes | None = None
+    moofs: list[bytes] = []
     for box_type, box in _iter_boxes(data):
-        if box_type != b"moov":
+        if box_type == b"moov":
+            moov = box
+        elif box_type == b"moof":
+            moofs.append(box)
+    if moov is None:
+        return 0.0
+    if moofs:
+        duration = _fragmented_duration(moov, moofs)
+        if duration is not None:
+            return duration
+    return _mvhd_duration(moov)
+
+
+def _u32(data: bytes, offset: int) -> int:
+    return struct.unpack_from(">I", data, offset)[0]
+
+
+def _u64(data: bytes, offset: int) -> int:
+    return struct.unpack_from(">Q", data, offset)[0]
+
+
+def _box_type(box: bytes) -> bytes:
+    """Return the fourcc type of one MP4 box (bytes 4..8 of the header)."""
+    return box[4:8]
+
+
+def _mvhd_duration(moov: bytes) -> float:
+    """Return the ``moov/mvhd`` duration for non-fragmented MP4s."""
+    for inner_type, inner in _iter_boxes(moov[8:]):
+        if inner_type != b"mvhd":
             continue
-        for inner_type, inner in _iter_boxes(box[8:]):
-            if inner_type != b"mvhd":
-                continue
-            payload = inner[8:]
-            if len(payload) < 20 or payload[0] != 0:
+        payload = inner[8:]
+        if not payload:
+            return 0.0
+        version = payload[0]
+        if version == 0:
+            if len(payload) < 20:
                 return 0.0
-            timescale = struct.unpack_from(">I", payload, 12)[0]
-            duration = struct.unpack_from(">I", payload, 16)[0]
-            if timescale == 0:
+            timescale = _u32(payload, 12)
+            duration = _u32(payload, 16)
+        elif version == 1:
+            if len(payload) < 32:
                 return 0.0
-            return duration / timescale
+            timescale = _u32(payload, 20)
+            duration = _u64(payload, 24)
+        else:
+            return 0.0
+        if timescale == 0:
+            return 0.0
+        return duration / timescale
     return 0.0
+
+
+def _fragmented_duration(moov: bytes, moofs: list[bytes]) -> float | None:
+    """Reconstruct the true movie duration from the fragment sample tables.
+
+    The movie ends when every track's last fragment has finished: per track,
+    ``tfdt`` base decode time plus the ``trun`` sample durations of every
+    fragment, in that track's ``mdhd`` timescale. Returns ``None`` when the
+    fragment layout is unrecognized so callers can fall back to ``mvhd``.
+    """
+    timescales: dict[int, int] = {}
+    for _, trak in _iter_boxes(moov[8:]):
+        if _box_type(trak) != b"trak":
+            continue
+        track_id, timescale = _trak_clock(trak)
+        if track_id is not None and timescale:
+            timescales[track_id] = timescale
+    ends: dict[int, float] = {}
+    for moof in moofs:
+        for _, traf in _iter_boxes(moof[8:]):
+            if _box_type(traf) != b"traf":
+                continue
+            entry = _traf_duration(traf)
+            if entry is None:
+                continue
+            track_id, base, ticks = entry
+            scale = timescales.get(track_id)
+            if not scale:
+                return None
+            ends[track_id] = (base + ticks) / scale
+    if not ends:
+        return None
+    return max(ends.values())
+
+
+def _trak_clock(trak: bytes) -> tuple[int | None, int | None]:
+    """Return ``(track_id, mdhd_timescale)`` for one ``trak`` box."""
+    track_id: int | None = None
+    timescale: int | None = None
+    for inner_type, inner in _iter_boxes(trak[8:]):
+        payload = inner[8:]
+        if inner_type == b"tkhd" and payload:
+            version = payload[0]
+            if version == 0 and len(payload) >= 16:
+                track_id = _u32(payload, 12)
+            elif version == 1 and len(payload) >= 24:
+                track_id = _u32(payload, 20)
+        elif inner_type == b"mdia":
+            for media_type, media in _iter_boxes(payload):
+                media_payload = media[8:]
+                if media_type != b"mdhd" or not media_payload:
+                    continue
+                version = media_payload[0]
+                if version == 0 and len(media_payload) >= 20:
+                    timescale = _u32(media_payload, 12)
+                elif version == 1 and len(media_payload) >= 28:
+                    timescale = _u32(media_payload, 20)
+    return track_id, timescale
+
+
+def _traf_duration(traf: bytes) -> tuple[int, int, int] | None:
+    """Return ``(track_id, tfdt_base, total_sample_ticks)`` for one ``traf``."""
+    track_id: int | None = None
+    default_duration: int | None = None
+    base: int | None = None
+    total = 0
+    for inner_type, inner in _iter_boxes(traf[8:]):
+        payload = inner[8:]
+        if inner_type == b"tfhd" and payload:
+            if len(payload) < 8:
+                continue
+            flags = _u32(payload, 0) & 0x00FFFFFF
+            track_id = _u32(payload, 4)
+            offset = 8
+            if flags & 0x000001:  # base-data-offset
+                offset += 8
+            if flags & 0x000002:  # sample-description-index
+                offset += 4
+            if flags & 0x000008 and offset + 4 <= len(payload):  # default-sample-duration
+                default_duration = _u32(payload, offset)
+        elif inner_type == b"tfdt" and payload:
+            version = payload[0]
+            if version == 0 and len(payload) >= 8:
+                base = _u32(payload, 4)
+            elif version == 1 and len(payload) >= 12:
+                base = _u64(payload, 4)
+        elif inner_type == b"trun" and payload:
+            if len(payload) < 8:
+                continue
+            flags = _u32(payload, 0) & 0x00FFFFFF
+            sample_count = _u32(payload, 4)
+            has_duration = bool(flags & 0x000100)
+            has_size = bool(flags & 0x000200)
+            has_flags = bool(flags & 0x000400)
+            has_composition = bool(flags & 0x000800)
+            step = 4 * (has_duration + has_size + has_flags + has_composition)
+            if has_duration:
+                offset = 8
+                if flags & 0x000001:  # data-offset
+                    offset += 4
+                if flags & 0x000004:  # first-sample-flags
+                    offset += 4
+                for _ in range(sample_count):
+                    if offset + step > len(payload):
+                        break
+                    duration = _u32(payload, offset)
+                    total += duration if duration else (default_duration or 0)
+                    offset += step
+            elif default_duration:
+                total += sample_count * default_duration
+    if track_id is None or base is None or total <= 0:
+        return None
+    return track_id, base, total
 
 
 def build_render_command(command: list[str], request: VideoRenderRequest) -> list[str]:
     """Assemble the FFmpeg argv for one deterministic render pass.
 
     Every segment image is looped for its exact duration, concatenated in
-    order, and muxed with the master audio. The encoded bytes are written to
-    the process's stdout (``pipe:1``) so the backend can capture the file
-    without touching a temp path.
+    order, and muxed with the master audio. Optional background music is
+    mixed in with audio ducking (lowering bg music volume when narration plays).
+
+    Returns the FFmpeg CLI argument list writing encoded bytes to ``pipe:1``.
     """
     argv = list(command) + ["-y", "-hide_banner", "-loglevel", "error"]
-    for segment in request.segments:
-        argv += ["-loop", "1", "-t", f"{segment.duration_seconds:g}", "-i", segment.file]
-    argv += ["-i", request.audio]
     n = len(request.segments)
-    labels = "".join(f"[{i}:v]" for i in range(n))
+
+    # Build video filter graph: loop each segment image, then concatenate
+    video_filter_parts: list[str] = []
+    for i in range(n):
+        video_filter_parts.append(f"[{i}:v]loop=1:0:{request.segments[i].duration_seconds:.2f}[int{i}v]")
+    video_concat = "".join(f"[int{i}v]" for i in range(n))
+    video_filter_parts.append(f"{video_concat}concat=n={n}:v=1:a=0[vout]")
+
+    # Build audio filter graph: extract narration audio, optionally mix with
+    # background music and apply ducking during narration segments
+    audio_filter_parts: list[str] = []
+    if request.background_music:
+        # Load and optionally duck the background music track
+        # Extract the base audio from the main audio file
+        audio_filter_parts.append(f"[{n}:a]atrim=0[{base_audio}]")
+        # Apply ducking ratio during narration portions
+        if request.audio_ducking_ratio and request.audio_ducking_ratio > 0:
+            audio_filter_parts.append(f"[{base_audio}]volume={request.audio_ducking_ratio}:enable='not(narration)'[{ducked_bg}]")
+        else:
+            pass  # ducked_bg will be set after the if block
+        # Mix narration with ducked background music
+        # Extract narration from the main audio track
+        audio_filter_parts.append(f"[{base_audio}]anubiahsync=learndetect=1:prefix={nar_label}:reset=100[{nar_detected}]")
+        audio_filter_parts.append(f"[{nar_detected}]volume=1.0[{nar_audio}]")
+        # Mix narration with background
+        mixed_label = f"mix_{n}"
+        audio_filter_parts.append(f"[{nar_audio}][{ducked_bg}]amix=inputs=2:duration=shortest[{mixed_label}]")
+    else:
+        # No background music - just extract and concatenate narration audio
+        for i in range(n):
+            start = sum(request.segments[j].duration_seconds for j in range(i)) if i > 0 else 0.0
+            end = start + request.segments[i].duration_seconds
+            audio_filter_parts.append(f"[{i}:a]atrim=start={start:.2f}:end={end:.2f}[{i}a]")
+        concat_label = "".join(f"[{i}a]" for i in range(n))
+        audio_filter_parts.append(f"{concat_label}concat=n={n}:v=0:a=1[aout]")
+
+    # Video filter graph
+    video_filter_graph = ";".join(video_filter_parts)
+
+    # Image looping and concatenation
+    for i, segment in enumerate(request.segments):
+        argv += ["-loop", "1", "-t", f"{segment.duration_seconds:g}", "-i", segment.file]
+    # Input main audio file
+    argv += ["-i", request.audio]
+
+    # Add audio filtering
+    if request.background_music or request.audio_ducking_ratio >= 0:
+        argv += ["-filter_complex", video_filter_graph]
+        if request.background_music:
+            argv += ["-filter_complex", ";".join(audio_filter_parts)]
+        else:
+            argv += ["-filter_complex", audio_filter_parts[-1]]
+    else:
+        argv += ["-filter_complex", video_filter_graph]
+
+    # Map outputs
+    argv += ["-map", "[vout]"]
+    if request.background_music:
+        argv += ["-map", f"{mixed_label}"]
+    else:
+        argv += ["-map", "[aout]"]
+    # Video encoding
+    argv += ["-c:v", request.codec, "-preset", "medium", "-crf", str(request.crf),
+        "-pix_fmt", request.pixel_format, "-r", str(request.fps)]
+    # Audio encoding
+    argv += ["-c:a", request.audio_codec, "-b:a", f"{request.audio_bitrate_kbps}k"]
+    # Container flags
+    if request.container == "mp4":
+        argv += ["-movflags", "frag_keyframe"]
     argv += [
-        "-filter_complex",
-        f"{labels}concat=n={n}:v=1:a=0[vout]",
-        "-map",
-        "[vout]",
-        "-map",
-        f"{n}:a",
-        "-c:v",
-        request.codec,
-        "-preset",
-        "medium",
-        "-crf",
-        str(request.crf),
-        "-pix_fmt",
-        request.pixel_format,
-        "-r",
-        str(request.fps),
-        "-c:a",
-        request.audio_codec,
-        "-b:a",
-        f"{request.audio_bitrate_kbps}k",
-        "-f",
-        request.container,
-        "pipe:1",
+        "-f", request.container, "pipe:1",
     ]
     return argv
 
@@ -422,6 +625,33 @@ class VideoRendererProvider:
     def provider_name(self) -> str:
         """Identifier of the configured encoding backend (for provenance)."""
         return self._backend.name
+
+    # ------------------------------------------------------ encoder settings --
+
+    @property
+    def codec(self) -> str:
+        """The configured video codec (libx264 by default)."""
+        return self._codec
+
+    @property
+    def container(self) -> str:
+        """The configured container format (mp4 by default)."""
+        return self._container
+
+    @property
+    def crf(self) -> int:
+        """The configured constant-rate-factor (20 by default)."""
+        return self._crf
+
+    @property
+    def audio_codec(self) -> str:
+        """The configured audio codec (aac by default)."""
+        return self._audio_codec
+
+    @property
+    def audio_bitrate_kbps(self) -> int:
+        """The configured audio bitrate in kbps (192 by default)."""
+        return self._audio_bitrate_kbps
 
     # ----------------------------------------------------------- internals --
 

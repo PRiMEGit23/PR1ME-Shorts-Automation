@@ -179,6 +179,66 @@ def test_stage_pins_overlays_to_their_shot(tmp_path: Path) -> None:
     asyncio.run(go())
 
 
+def test_stage_stretches_timeline_when_plan_shorter_than_narration(tmp_path: Path) -> None:
+    stage = _stage(tmp_path)
+    payload = _input_payload(tmp_path)
+    payload["assets"] = [_audio_assets(tmp_path, duration=18.0).model_dump(mode="json")]
+
+    async def go() -> None:
+        result: AssemblyOutput = await stage.run(payload)
+        assert result.total_frames == round(18.0 * _FPS)
+        assert result.tracks.video[-1].end_second == pytest.approx(18.0)
+        assert result.tracks.video[-1].end_frame == result.total_frames
+        overlay = result.tracks.overlays[0]
+        assert overlay.start_frame == round(1.0 * 1.5 * _FPS)
+        assert overlay.end_frame == round((1.0 * 1.5 + 4.0) * _FPS)
+
+    asyncio.run(go())
+
+
+def test_stage_compresses_timeline_when_plan_longer_than_narration(tmp_path: Path) -> None:
+    stage = _stage(tmp_path)
+    payload = _input_payload(tmp_path)
+    payload["assets"] = [_audio_assets(tmp_path, duration=6.0).model_dump(mode="json")]
+
+    async def go() -> None:
+        result: AssemblyOutput = await stage.run(payload)
+        assert result.total_frames == round(6.0 * _FPS)
+        assert result.tracks.video[1].end_second == pytest.approx(6.0)
+        overlay = result.tracks.overlays[0]
+        assert overlay.start_frame == round(1.0 * 0.5 * _FPS)
+        assert overlay.end_frame == round((1.0 + 4.0) * 0.5 * _FPS)
+
+    asyncio.run(go())
+
+
+def test_stage_adds_configured_padding_to_narration_target(tmp_path: Path) -> None:
+    settings = _settings(tmp_path)
+    settings.intro_padding_seconds = 0.5
+    settings.outro_padding_seconds = 1.5
+    stage = VideoAssemblyStage(context=_context(tmp_path, settings))
+
+    async def go() -> None:
+        result: AssemblyOutput = await stage.run(_input_payload(tmp_path))
+        assert result.total_frames == round((12.0 + 0.5 + 1.5) * _FPS)
+
+    asyncio.run(go())
+
+
+def test_stage_never_shorter_than_narration_across_targets(tmp_path: Path) -> None:
+    stage = _stage(tmp_path)
+
+    async def go() -> None:
+        for duration in (3.0, 12.0, 30.0):
+            payload = _input_payload(tmp_path)
+            payload["assets"] = [_audio_assets(tmp_path, duration=duration).model_dump(mode="json")]
+            result: AssemblyOutput = await stage.run(payload)
+            assert result.tracks.video[-1].end_second >= duration - 1e-9
+            assert result.tracks.audio.end_frame == round(duration * _FPS)
+
+    asyncio.run(go())
+
+
 def test_stage_fails_without_images(tmp_path: Path) -> None:
     stage = _stage(tmp_path)
     payload = _input_payload(tmp_path)

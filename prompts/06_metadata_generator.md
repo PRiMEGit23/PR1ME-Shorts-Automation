@@ -55,7 +55,8 @@ Every metadata set must target exactly ONE primary search intent. Allowed values
 
 Organize keywords into levels.
 
-- **Primary Keyword** — must appear naturally in the title, the first sentence of the description, and the first tag.
+- **Primary Keyword** — the exact phrase (same words, same order, verbatim) MUST appear in the title, in the first sentence of the description, and as the first tag. Do not paraphrase, reorder, or pluralize it. If the title you are drafting does not contain the primary keyword character-for-character, rewrite the title until it does.
+- **Primary Keyword Length** — keep the primary keyword to **2–4 words**. A short keyword is easier to place verbatim everywhere. Never choose a phrase longer than 4 words. If a longer phrase seems natural, pick its core 2–4 word form (e.g., "print bed leveling" instead of "print bed leveling techniques for consistent prints").
 - **Secondary Keywords** — support the primary keyword and appear naturally throughout the description and the remaining tags.
 
 Avoid keyword stuffing.
@@ -77,11 +78,17 @@ Never repeat identical phrases unnecessarily.
 
 Titles must balance searchability, clickability, and truthfulness. Use only one primary curiosity mechanism. Allowed: Question, Contradiction, Comparison, Unexpected Result, and Precision. Never use clickbait, misleading wording, emoji spam, ALL CAPS, or false urgency.
 
+**Title construction rule (mandatory):** Draft the title FIRST. Then pick the primary keyword as a contiguous substring of that exact title (2–4 words taken straight from the title, no reordering). Example: title "Print Bed Leveling Tips for Perfect First Layers" → primary keyword "print bed leveling" or "bed leveling tips" (both are contiguous in the title). Never pick a keyword that is not a contiguous part of the title you wrote.
+
+**Description rule (mandatory):** The first sentence of the description MUST begin with the same primary keyword, verbatim, as its opening words. Example: keyword "print bed leveling" → description starts "Print bed leveling keeps your prints flat and sturdy..." If the first sentence does not begin with the exact keyword, rewrite it. The primary keyword and the first sentence of the description are always identical in wording.
+
+**Description template (mandatory):** Build the description's first sentence using this exact shape — `<Primary Keyword> <explains what the video teaches>.` — nothing before the keyword, no questions, no interjections. Only after that sentence may you add hook-style lines.
+
 ### Description Structure
 
 Structure each description as follows:
 
-- **Line 1** — immediate value.
+- **Line 1** — starts with the primary keyword verbatim as the first words of the first sentence, then completes the sentence with the video's core value (e.g., keyword "print bed leveling" → "Print bed leveling keeps your prints flat and sturdy by fixing uneven beds."). Never start with a question, never start with the script hook, never start with any other phrase.
 - **Line 2** — engineering explanation.
 - **Line 3** — natural discovery keywords.
 - **Optional final line** — PR1M3 Labs branding.
@@ -128,7 +135,7 @@ If any answer is NO, redesign the metadata.
 ## 4. Strict Constraints
 
 - Generate **exactly one** metadata set. Never multiple variants or an array.
-- The **title must be ≤ 100 characters** and contain the primary keyword.
+- The **title must be ≤ 100 characters** and contain the primary keyword **verbatim** (exact same words in the same order — a simple case variation is allowed, but no other changes).
 - **Tags: 5–10 tags**, each a realistic search term.
 - **Hashtags: up to 3**, concise and relevant.
 - Metadata must be **truthful** to the approved topic and script; no invented claims.
@@ -159,7 +166,7 @@ Return a single JSON object with this exact schema:
 ```
 
 - `title` — ≤ 100 characters, contains the primary keyword, truthful to the topic.
-- `description` — 1–3 sentences; first line hooks, remaining lines add discoverability keywords.
+- `description` — 1–3 sentences; the first sentence begins with the primary keyword verbatim, then the remaining text adds value and discoverability keywords.
 - `tags` — 5–10 realistic search terms including the primary keyword and related terms.
 - `hashtags` — up to 3 concise hashtags (no spaces).
 - `category` — the single best YouTube category for this content.
@@ -176,8 +183,8 @@ Example:
 ```
 {
   "title": "Print Overhangs WITHOUT Supports (Settings That Work)",
-  "description": "Learn how to print steep overhangs without supports using fan speed and print speed settings. Improve your 3D print quality today.",
-  "tags": ["3d printing overhang", "print overhangs without supports", "3d print settings", "overhang 3d printer", "fan speed 3d printing", "print quality tips"],
+  "description": "Print overhangs without supports using fan speed and print speed settings. Improve your 3D print quality today.",
+  "tags": ["print overhangs without supports", "3d printing overhang", "3d print settings", "overhang 3d printer", "fan speed 3d printing", "print quality tips"],
   "hashtags": ["#3Dprinting", "#Overhang", "#PrintQuality"],
   "category": "Science & Technology",
   "visibility": "public",
@@ -209,14 +216,14 @@ script: {
 ```
 {
   "title": "Print Steep Overhangs Without Supports (Real Settings)",
-  "description": "Steep overhangs without supports are possible. Adjust fan speed and print speed to let each layer cool and hold. Watch now for the exact settings.",
-  "tags": ["overhang without supports", "steep overhang 3d printing", "print fan speed", "3d printing cooling", "print speed overhang", "no support 3d print"],
+  "description": "Print steep overhangs without supports by adjusting fan speed and print speed. Let each layer cool and hold before the next one rests. Watch now for the exact settings.",
+  "tags": ["steep overhangs without supports", "overhang 3d printing", "print fan speed", "3d printing cooling", "print speed overhang", "no support 3d print"],
   "hashtags": ["#Overhang", "#3Dprinting", "#NoSupports"],
   "category": "Science & Technology",
   "visibility": "public",
   "publish_at": null,
   "made_for_kids": false,
-  "primary_keyword": "overhang without supports",
+  "primary_keyword": "steep overhangs without supports",
   "secondary_keywords": ["print fan speed", "print speed overhang", "3d printing cooling"],
   "search_intent": "How To",
   "target_audience": "Beginner"
@@ -249,7 +256,8 @@ Return `{"status": "failed"}` (plus a one-line `reason`) when any of these occur
 
 Before returning the JSON object, perform a **silent validation pass**, then emit. **Never output the validation or its results.**
 
-1. Title is ≤ 100 characters and contains the primary keyword.
+1. Title is ≤ 100 characters and contains the primary keyword verbatim.
+2. The description's first sentence begins with the primary keyword verbatim (it is the opening words of the first sentence, before anything else).
 2. Title is truthful to the topic and script.
 3. Description front-loads value and reads naturally.
 4. Tags are 5–10 realistic search terms.
@@ -265,3 +273,13 @@ Before returning the JSON object, perform a **silent validation pass**, then emi
 14. The complete metadata could be reproduced consistently by another AI system.
 
 If yes, return the single JSON object and stop. If no, resolve it or return the failure. No prose or markdown after the object.
+
+## 9. Non-Negotiable Output Contract
+
+Before emitting, apply these three rules in order — they override any earlier guidance that conflicts:
+
+1. `primary_keyword` is the exact phrase, 2–4 words, no paraphrasing.
+2. `title` contains that exact phrase, word-for-word, consecutively.
+3. `description` opens with that exact phrase as the first words of the first sentence, followed by a comma or verb — e.g. `"Print bed leveling keeps..."`, `"Print bed leveling is..."`.
+
+Then write `tags[0]` as that exact phrase. Emit the JSON object. Stop.

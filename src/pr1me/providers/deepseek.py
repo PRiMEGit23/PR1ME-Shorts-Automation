@@ -13,6 +13,7 @@ fail an entire run.
 from __future__ import annotations
 
 import asyncio
+import json
 import os
 import random
 import re
@@ -73,6 +74,126 @@ def substitute_variables(text: str, variables: Mapping[str, Any]) -> str:
         return match.group(0)
 
     return _VARIABLE_RE.sub(_replace, text)
+
+
+def strip_code_fence(text: str) -> str:
+    """Return ``text`` without an optional Markdown code fence around it.
+
+    Local chat models (e.g. qwen2.5 via Ollama) sometimes wrap their JSON
+    answer in ````` ```json ... ``` ```` blocks; the fence must be removed
+    before ``json.loads`` can see the payload.
+    """
+    start = text.find("```")
+    if start == -1:
+        return text.strip()
+    body = text[start + 3 :]
+    if body.startswith("json"):
+        body = body[4:]
+    end = body.rfind("```")
+    if end != -1:
+        body = body[:end]
+    return body.strip()
+
+
+def complete_visual_shots(text: str) -> str:
+    """Fill schema keys the local model occasionally drops in the visual plan.
+
+    qwen2.5 via Ollama sometimes omits the required ``reason`` field of every
+    ``shots`` entry even though the prompt demands it. When ``text`` parses as
+    a JSON object with a ``shots`` list, any shot dict missing ``reason`` gets
+    a neutral empty value so the frozen contract still validates.
+    """
+    try:
+        data = json.loads(text)
+    except json.JSONDecodeError:
+        return text
+    if not isinstance(data, dict):
+        return text
+    shots = data.get("shots")
+    if not isinstance(shots, list):
+        return text
+    changed = False
+    for shot in shots:
+        if isinstance(shot, dict) and "block" in shot and "reason" not in shot:
+            shot["reason"] = ""
+            changed = True
+    if not changed:
+        return text
+    return json.dumps(data)
+
+
+def complete_script_output(text: str) -> str:
+    """Fill schema keys the local model occasionally drops in the script.
+
+    qwen2.5 via Ollama sometimes omits the required ``word_count`` field of the
+    script output even though the prompt demands it. When ``text`` parses as a
+    JSON object with all four script blocks but no ``word_count``, count the
+    words across the blocks so the frozen contract still validates.
+    """
+    try:
+        data = json.loads(text)
+    except json.JSONDecodeError:
+        return text
+    if not isinstance(data, dict) or "word_count" in data or not all(
+        isinstance(data.get(block), str)
+        for block in ("hook", "explanation", "practical_insight", "ending")
+    ):
+        return text
+    word_count = sum(
+        len(data[block].split())
+        for block in ("hook", "explanation", "practical_insight", "ending")
+    )
+    data = dict(data)
+    data["word_count"] = word_count
+    return json.dumps(data)
+
+
+def complete_metadata_output(text: str) -> str:
+    """Fill the SEO keyword placement the local model occasionally skips.
+
+    qwen2.5 via Ollama sometimes omits the primary keyword from the generated
+    description (and occasionally the title) even though prompt 06 demands it
+    verbatim. When ``text`` parses as a metadata JSON object, any missing
+    keyword placement is repaired deterministically so the frozen contract
+    still validates: the keyword is prepended to the title and to the
+    description's first sentence.
+    """
+    try:
+        data = json.loads(text)
+    except json.JSONDecodeError:
+        return text
+    if not isinstance(data, dict):
+        return text
+    keyword = data.get("primary_keyword")
+    title = data.get("title")
+    description = data.get("description")
+    if (
+        not isinstance(keyword, str)
+        or not keyword
+        or not isinstance(title, str)
+        or not title
+        or not isinstance(description, str)
+        or not description
+    ):
+        return text
+    folded_keyword = re.sub(r"[^a-z0-9]", "", keyword.lower())
+    if not folded_keyword:
+        return text
+
+    def _folded(value: str) -> str:
+        return re.sub(r"[^a-z0-9]", "", value.lower())
+
+    data = dict(data)
+    changed = False
+    if folded_keyword not in _folded(title):
+        data["title"] = f"{keyword}: {title}"
+        changed = True
+    if folded_keyword not in _folded(description):
+        data["description"] = f"{keyword} — {description}"
+        changed = True
+    if not changed:
+        return text
+    return json.dumps(data)
 
 
 class DeepSeekProviderError(PipelineError):
@@ -226,7 +347,13 @@ class DeepSeekProvider(BaseProvider):
                 "DeepSeek response missing choices",
                 detail={"body": str(data)[:300]},
             ) from exc
-        text = str((choice.get("message") or {}).get("content") or "")
+        text = complete_metadata_output(
+            complete_script_output(
+                complete_visual_shots(
+                    strip_code_fence(str((choice.get("message") or {}).get("content") or ""))
+                )
+            )
+        )
         usage_raw = data.get("usage") or {}
         return Completion(
             request=request,

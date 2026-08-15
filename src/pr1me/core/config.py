@@ -46,7 +46,7 @@ class Settings(BaseSettings):
     log_json: bool = True
 
     #: Default AI provider id resolved from the provider registry.
-    provider: str = "noop"
+    provider: str = "ollama"
 
     #: Default target resolution for Shorts deliverables.
     target_width: int = 1080
@@ -58,6 +58,45 @@ class Settings(BaseSettings):
     #: Default Shorts duration budget in seconds (PIPELINE_SPEC).
     target_max_duration_seconds: float = 45.0
     target_min_duration_seconds: float = 35.0
+
+    #: Optional timeline padding around the narration, in seconds. The final
+    #: video duration is derived as ``narration + intro + outro``; both default
+    #: to zero so the deliverable matches the narration length exactly unless
+    #: the operator opts into a longer hold.
+    intro_padding_seconds: float = Field(default=0.0, ge=0.0, le=30.0)
+    outro_padding_seconds: float = Field(default=0.0, ge=0.0, le=30.0)
+
+    #: Feature flag: render the legacy single-prompt path (``build_positive_prompt``
+    #: over the visual plan) instead of the validated Visual Architecture payloads.
+    #: The flag exists only for fallback/rollback; the active pipeline always uses
+    #: the Workflow Builder payloads when available.
+    use_legacy_image_prompts: bool = False
+
+    #: Hard gate for the Visual Architecture chain: when enabled, an LLM output
+    #: that violates a stage contract (or fails a content predicate) raises
+    #: instead of falling back to the deterministic core.
+    visual_architecture_strict: bool = False
+
+    #: Enable the Image Critic quality gate after every render. A render below
+    #: the threshold is regenerated with targeted corrections.
+    image_critic_enabled: bool = True
+
+    #: Image Critic quality bar: a render below this score is regenerated.
+    image_critic_threshold: int = Field(default=90, ge=1, le=100)
+
+    #: Regeneration budget for a failed render (thumbnail shots may render up
+    #: to ``image_critic_thumbnail_candidates`` candidates instead).
+    image_critic_max_attempts: int = Field(default=2, ge=1, le=5)
+
+    #: Number of thumbnail candidates rendered for the thumbnail shot; each is
+    #: critiqued and the strongest one is kept.
+    image_critic_thumbnail_candidates: int = Field(default=3, ge=1, le=6)
+
+    #: Hard gate for the Image Critic: when enabled and the regeneration budget
+    #: is exhausted below the threshold, the stage fails. When disabled, the
+    #: best-scoring render is accepted and the gate failure is recorded in the
+    #: report.
+    image_critic_strict: bool = False
 
     @property
     def run_dir(self) -> Path:

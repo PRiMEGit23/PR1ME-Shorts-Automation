@@ -17,6 +17,7 @@ from pr1me.core.context import StageContext
 from pr1me.core.errors import ProviderNotConfiguredError
 from pr1me.core.prompt_loader import PromptLoader
 from pr1me.core.stage_registry import StageRegistry
+from pr1me.models.common import ValidationDescriptor
 from pr1me.models.contracts.image import ImageManifestOutput
 from pr1me.models.contracts.visual import (
     VisualBranding,
@@ -24,6 +25,7 @@ from pr1me.models.contracts.visual import (
     VisualScene,
     VisualShot,
 )
+from pr1me.models.contracts.workflow import WorkflowFrame
 from pr1me.pipeline.runner import PipelineRunner
 from pr1me.providers.comfyui import (
     ComfyUIExecutionError,
@@ -37,7 +39,7 @@ from pr1me.providers.comfyui import (
 )
 from pr1me.stages.image_generation_stage import ImageGenerationStage
 
-logger = logging.getLogger("test-images")
+logger = logging.LoggerAdapter(logging.getLogger("test-images"), {})
 
 PNG_1X1 = base64.b64decode(
     "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=="
@@ -295,7 +297,13 @@ class FakeComfyUIProvider(ComfyUIProvider):
     def workflow_name(self) -> str:
         return "comfyui.json"
 
-    async def render(self, variables, *, output_dir, workflow=None) -> list[ComfyUIRender]:  # noqa: ARG002
+    async def render(
+        self,
+        variables: dict[str, Any],
+        *,
+        output_dir: str | Path,
+        workflow: Any = None,  # noqa: ARG002
+    ) -> list[ComfyUIRender]:
         dest = Path(output_dir)
         await asyncio.to_thread(dest.mkdir, parents=True, exist_ok=True)
         name = f"render_{len(self.calls):02d}.png"
@@ -305,8 +313,40 @@ class FakeComfyUIProvider(ComfyUIProvider):
 
 
 class EmptyComfyUIProvider(FakeComfyUIProvider):
-    async def render(self, variables, *, output_dir, workflow=None) -> list[ComfyUIRender]:  # noqa: ARG002
+    async def render(
+        self,
+        variables: dict[str, Any],
+        *,
+        output_dir: str | Path,
+        workflow: Any = None,  # noqa: ARG002
+    ) -> list[ComfyUIRender]:
         return []
+
+
+def _frame(shot_id: int, block: str) -> WorkflowFrame:
+    return WorkflowFrame(
+        shot_id=shot_id,
+        block=block,
+        start_second=(shot_id - 1) * 6.0,
+        end_second=shot_id * 6.0,
+        duration_seconds=6.0,
+        positive_prompt=f"validated prompt for shot {shot_id}",
+        negative_prompt="hygiene negatives",
+        camera="low angle, macro 100mm, push-in",
+        composition="centered",
+        lighting="studio",
+        style="technical render",
+        motion="slow push-in",
+        transition="cut",
+        validation_score=100,
+        width=1080,
+        height=1920,
+        seed=424242 + shot_id * 7919,
+        steps=28,
+        cfg=7.0,
+        sampler="euler_a",
+        scheduler="karras",
+    )
 
 
 def test_stage_renders_every_shot_in_order(tmp_path: Path) -> None:
@@ -324,6 +364,83 @@ def test_stage_renders_every_shot_in_order(tmp_path: Path) -> None:
         first = fake.calls[0]
         assert "first layer" in first["positive_prompt"]
         assert first["width"] == settings.target_width
+
+    asyncio.run(go())
+
+
+def test_stage_renders_validated_frames_in_order(tmp_path: Path) -> None:
+    settings = _settings(tmp_path)
+    context = _context(tmp_path, settings)
+    fake = FakeComfyUIProvider()
+    stage = ImageGenerationStage(context=context, comfyui_provider=fake)
+
+    async def go() -> None:
+        result: ImageManifestOutput = await stage.run(
+            {
+                "total_seconds": 12.0,
+                "shots": [],
+                "branding": {"use_logo": True, "use_broll": True, "broll_source": None},
+                "frames": [_frame(1, "hook"), _frame(2, "explanation")],
+            }
+        )
+        assert result.total == 2
+        assert [asset.shot_id for asset in result.images] == [1, 2]
+        assert result.validation.status.value == "ok"
+        assert len(fake.calls) == 2
+        first = fake.calls[0]
+        assert first["positive_prompt"] == "validated prompt for shot 1"
+        assert first["seed"] == 424242 + 7919
+        assert first["steps"] == 28
+        assert first["width"] == 1080
+        metadata = result.images[0].metadata
+        assert metadata.block == "hook"
+        assert metadata.start_second == 0.0
+        assert metadata.end_second == 6.0
+        assert metadata.positive_prompt == "validated prompt for shot 1"
+
+    asyncio.run(go())
+
+
+def test_stage_prefers_frames_over_legacy_plan_when_flag_off(tmp_path: Path) -> None:
+    settings = _settings(tmp_path)
+    context = _context(tmp_path, settings)
+    fake = FakeComfyUIProvider()
+    stage = ImageGenerationStage(context=context, comfyui_provider=fake)
+
+    async def go() -> None:
+        result: ImageManifestOutput = await stage.run(
+            {
+                "total_seconds": 12.0,
+                "shots": [_shot(1, "legacy subject")],
+                "branding": {"use_logo": True, "use_broll": True, "broll_source": None},
+                "frames": [_frame(1, "hook")],
+            }
+        )
+        assert result.total == 1
+        assert fake.calls[0]["positive_prompt"] == "validated prompt for shot 1"
+        assert "legacy subject" not in fake.calls[0]["positive_prompt"]
+
+    asyncio.run(go())
+
+
+def test_stage_legacy_flag_forces_visual_plan_prompts(tmp_path: Path) -> None:
+    settings = _settings(tmp_path)
+    settings.use_legacy_image_prompts = True
+    context = _context(tmp_path, settings)
+    fake = FakeComfyUIProvider()
+    stage = ImageGenerationStage(context=context, comfyui_provider=fake)
+
+    async def go() -> None:
+        result: ImageManifestOutput = await stage.run(
+            {
+                "total_seconds": 12.0,
+                "shots": [_shot(1, "legacy subject")],
+                "branding": {"use_logo": True, "use_broll": True, "broll_source": None},
+                "frames": [_frame(1, "hook")],
+            }
+        )
+        assert result.total == 1
+        assert "legacy subject" in fake.calls[0]["positive_prompt"]
 
     asyncio.run(go())
 
@@ -359,37 +476,37 @@ def test_stage_fails_when_render_returns_nothing(tmp_path: Path) -> None:
     asyncio.run(go())
 
 
-def test_runner_includes_image_generation_after_visual(tmp_path: Path) -> None:
+def test_runner_includes_image_generation_after_workflow_builder(tmp_path: Path) -> None:
     from pr1me.core.base_stage import BaseStage
     from pr1me.models.contracts.base import StageInput, StageOutput
 
     settings = _settings(tmp_path)
     settings.work_dir.mkdir(parents=True, exist_ok=True)
     context = _context(tmp_path, settings)
-    plan = _plan()
 
-    class VisualInput(StageInput):
+    class BuilderInput(StageInput):
         model_config = {"extra": "ignore"}
-        total_seconds: float
-        shots: list[VisualShot] = []
 
-    class VisualOutput(StageOutput):
-        total_seconds: float
-        shots: list[VisualShot] = []
-        branding: VisualBranding = VisualBranding()
+    class BuilderOutput(StageOutput):
+        frames: list[WorkflowFrame] = []
+        total: int = 0
+        validation: ValidationDescriptor = ValidationDescriptor()
 
-    class VisualStub(BaseStage[VisualInput, VisualOutput]):
-        stage_id = "visual"
-        name = "Visual Stub"
+    class WorkflowBuilderStub(BaseStage[BuilderInput, BuilderOutput]):
+        stage_id = "workflow_builder"
+        name = "Workflow Builder Stub"
         depends_on: tuple = ()
-        input_model = VisualInput
-        output_model = VisualOutput
+        input_model = BuilderInput
+        output_model = BuilderOutput
 
-        async def execute(self, payload):
-            return plan
+        async def execute(self, payload: BuilderInput) -> BuilderOutput:  # noqa: ARG002
+            return BuilderOutput(
+                frames=[_frame(1, "hook"), _frame(2, "hook")],
+                total=2,
+            )
 
     registry = StageRegistry(context=context)
-    registry.register(VisualStub(context=context))
+    registry.register(WorkflowBuilderStub(context=context))
     registry.register(ImageGenerationStage(context=context, comfyui_provider=FakeComfyUIProvider()))
     runner = PipelineRunner(registry, context=context, artifact_dir=settings.work_dir)
 
@@ -397,7 +514,7 @@ def test_runner_includes_image_generation_after_visual(tmp_path: Path) -> None:
         report = await runner.run(_plan().model_dump(mode="json"), job_id="job-img")
         assert report.run_status.value == "complete"
         assert [record.stage_id for record in report.stages] == [
-            "visual",
+            "workflow_builder",
             "image_generation",
         ]
         assert (settings.work_dir / "images" / "shot_001.png").is_file()

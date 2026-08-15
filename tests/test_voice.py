@@ -26,6 +26,7 @@ from pr1me.models.contracts.visual import (
     VisualShot,
 )
 from pr1me.models.contracts.voice import VoiceManifestOutput
+from pr1me.models.contracts.workflow import WorkflowFrame
 from pr1me.pipeline.runner import PipelineRunner
 from pr1me.providers.comfyui import ComfyUIRender
 from pr1me.providers.voice import (
@@ -378,29 +379,54 @@ def test_runner_includes_voice_generation_last(tmp_path: Path) -> None:
         async def execute(self, payload):  # noqa: ARG002
             return script
 
-    class VisualStubInput(StageInput):
+    def _frame(shot_id: int, block: str) -> WorkflowFrame:
+        return WorkflowFrame(
+            shot_id=shot_id,
+            block=block,
+            start_second=(shot_id - 1) * 6.0,
+            end_second=shot_id * 6.0,
+            duration_seconds=6.0,
+            positive_prompt="validated prompt",
+            negative_prompt="hygiene negatives",
+            camera="low angle, macro 100mm, push-in",
+            composition="centered",
+            lighting="studio",
+            style="technical render",
+            motion="slow push-in",
+            transition="cut",
+            validation_score=100,
+            width=1080,
+            height=1920,
+            seed=424242 + shot_id * 7919,
+            steps=28,
+            cfg=7.0,
+            sampler="euler_a",
+            scheduler="karras",
+        )
+
+    class BuilderStubInput(StageInput):
         model_config = {"extra": "ignore"}
-        total_seconds: float
-        shots: list[VisualShot] = []
 
-    class VisualStubOutput(StageOutput):
-        total_seconds: float
-        shots: list[VisualShot] = []
-        branding: VisualBranding = VisualBranding()
+    class BuilderStubOutput(StageOutput):
+        frames: list[WorkflowFrame] = []
+        total: int = 0
 
-    class VisualStub(BaseStage[VisualStubInput, VisualStubOutput]):
-        stage_id = "visual"
-        name = "Visual Stub"
+    class BuilderStub(BaseStage[BuilderStubInput, BuilderStubOutput]):
+        stage_id = "workflow_builder"
+        name = "Workflow Builder Stub"
         depends_on: tuple = ()
-        input_model = VisualStubInput
-        output_model = VisualStubOutput
+        input_model = BuilderStubInput
+        output_model = BuilderStubOutput
 
         async def execute(self, payload):  # noqa: ARG002
-            return _plan()
+            return BuilderStubOutput(
+                frames=[_frame(1, "hook")],
+                total=1,
+            )
 
     registry = StageRegistry(context=context)
     registry.register(ScriptStub(context=context))
-    registry.register(VisualStub(context=context))
+    registry.register(BuilderStub(context=context))
     registry.register(ImageGenerationStage(context=context, comfyui_provider=_FakeComfyUI()))
     registry.register(VoiceGenerationStage(context=context, voice_provider=FakeVoiceProvider()))
     runner = PipelineRunner(registry, context=context, artifact_dir=settings.work_dir)
@@ -410,7 +436,7 @@ def test_runner_includes_voice_generation_last(tmp_path: Path) -> None:
         assert report.run_status.value == "complete"
         assert [record.stage_id for record in report.stages] == [
             "script",
-            "visual",
+            "workflow_builder",
             "image_generation",
             "voice_generation",
         ]

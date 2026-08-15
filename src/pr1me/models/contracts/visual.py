@@ -77,6 +77,6 @@ class VisualShot(StableModel):
 class VisualPlanOutput(StageOutput):
     """A complete 35-45s visual plan. Mirrors prompt 04's output schema."""
 
-    total_seconds: float
+    total_seconds: float = 0.0
     shots: list[VisualShot] = Field(default_factory=list)
     branding: VisualBranding = Field(default_factory=VisualBranding)

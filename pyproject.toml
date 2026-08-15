@@ -47,6 +47,12 @@ select = ["E", "F", "I", "UP", "B", "ASYNC", "A"]
 # and the toolchain targets Python 3.11 for parsing).
 ignore = ["A003", "UP046", "UP047", "B027"]
 
+[tool.ruff.lint.per-file-ignores]
+# Curated knowledge data and CSV tooling carry long prose lines by design.
+"knowledge/**/*.py" = ["E501"]
+"build_knowledge_csv.py" = ["E501"]
+"validate_knowledge_csv.py" = ["E501"]
+
 [tool.mypy]
 python_version = "3.12"
 warn_unused_configs = true

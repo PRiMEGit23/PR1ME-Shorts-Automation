@@ -38,6 +38,7 @@ from pr1me.providers.youtube import (
 )
 
 _ENV_OUTPUT_DIR = "PR1ME_PUBLISH_OUTPUT_DIR"
+_ENV_DRY_RUN = "PR1ME_PUBLISH_DRY_RUN"
 
 #: Deliverable names produced by the upstream render and thumbnail stages
 #: (CLI contract; the overrides in PublishInput win when provided).
@@ -82,16 +83,22 @@ class PublisherStage(BaseStage[PublishInput, PublishManifestOutput]):
         self._require_assets((video_file, "video"), (thumbnail_file, "thumbnail"))
 
         metadata = payload.metadata_block()
+        dry_run = payload.dry_run or os.getenv(_ENV_DRY_RUN, "").strip().lower() in {
+            "1",
+            "true",
+            "yes",
+            "on",
+        }
         self._logger.info(
             "event=publisher.started",
             title=metadata.title,
             visibility=metadata.visibility.value,
-            dry_run=payload.dry_run,
+            dry_run=dry_run,
             video=str(video_file),
             thumbnail=str(thumbnail_file),
         )
 
-        if payload.dry_run:
+        if dry_run:
             manifest = PublishManifestOutput(
                 visibility=metadata.visibility,
                 dry_run=True,
