@@ -1,4 +1,4 @@
-﻿# Node
+# Node
 node_modules/
 npm-debug.log*
 yarn-debug.log*
@@ -23,7 +23,7 @@ coverage/
 # Python
 __pycache__/
 *.py[cod]
-*$py.class
+*.class
 *.so
 .Python
 env/
@@ -38,8 +38,7 @@ venv.bak/
 .tox/
 .nox/
 .coverage
-.coverage.*
-htmlcov/
+.coverage.htmlcov
 pip-wheel-metadata/
 *.egg-info/
 .eggs/
@@ -61,3 +60,15 @@ MANIFEST
 Thumbs.db
 *~
 *.swp
+
+# PR1ME Specific Generated Artifacts
+knowledge/benchmarks/
+output/
+runtime/artifacts/
+*.pdf
+*.svg
+
+# IDE
+.idea/
+.vscode/
+.vscode/settings.json
