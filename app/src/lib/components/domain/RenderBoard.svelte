@@ -17,6 +17,8 @@ import { QueueService } from '$lib/services/queue.service';
 	let queueStatus = $derived({ active: [], tick: 0 });
 	let items = $derived<any[]>([]);
 	let mode = $state('board' as 'board' | 'dashboard' | 'history');
+	let selectedItem = $state<{ id: string } | null>(null);
+	let showInspector = $state(false);
 
 	// Initialize: fetch queue status + history on mount
 	(async () => {

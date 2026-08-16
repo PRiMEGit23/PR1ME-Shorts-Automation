@@ -11,6 +11,7 @@ import Tooltip from '$lib/components/primitives/Tooltip.svelte';
 	const bridge = {} as Bridge;
 
 	let mode = $state('board' as 'board' | 'dashboard' | 'history');
+	let showHistory = $state(false);
 
 	// Mode toggle
 	function setMode(m: 'board' | 'dashboard' | 'history'): void {
