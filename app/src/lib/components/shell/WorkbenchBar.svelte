@@ -38,7 +38,7 @@
 	<div class="wb-actions">
 		<Button variant="cta" icon="generate" onclick={() => ui.openPalette('commands')}>Generate</Button>
 		<Tooltip label="Connections">
-			<IconButton icon="connections" label="Connections" size={28} iconSize={16} onclick={() => ui.openPalette('commands')} />
+			<IconButton icon="connections" label="Connections" size={28} iconSize={16} onclick={() => ui.openModal('connections')} />
 		</Tooltip>
 		<Tooltip label="Preferences">
 			<IconButton icon="preferences" label="Preferences" size={28} iconSize={16} onclick={() => ui.openPalette('commands')} />

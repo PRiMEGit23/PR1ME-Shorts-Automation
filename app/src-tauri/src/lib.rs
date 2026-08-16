@@ -55,6 +55,8 @@ pub fn run() {
             commands::settings::settings_load,
             commands::settings::settings_save,
             commands::providers::env_probe,
+            commands::providers::providers_health,
+            commands::providers::providers_health_all,
             commands::layout::layout_save,
             commands::productions::production_list,
             commands::productions::production_create,

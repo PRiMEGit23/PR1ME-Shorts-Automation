@@ -13,6 +13,13 @@
 	});
 </script>
 
-<WindowShell ui={store.ui} layout={store.layout} editor={store.editor} app={store}>
+<WindowShell
+	ui={store.ui}
+	layout={store.layout}
+	editor={store.editor}
+	app={store}
+	providers={store.providers}
+	connections={store.connections}
+>
 	{@render children?.()}
 </WindowShell>

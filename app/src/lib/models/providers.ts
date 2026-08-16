@@ -21,14 +21,14 @@ export interface HealthState {
 	latency_ms?: number | null;
 }
 
-export const PROVIDERS: { id: ProviderId; label: string; planned?: boolean }[] = [
-	{ id: 'ollama', label: 'Ollama' },
-	{ id: 'deepseek', label: 'DeepSeek' },
-	{ id: 'comfyui', label: 'ComfyUI' },
-	{ id: 'kokoro', label: 'Kokoro' },
-	{ id: 'ffmpeg', label: 'ffmpeg' },
-	{ id: 'youtube', label: 'YouTube' },
-	{ id: 'instagram', label: 'Instagram', planned: true }
+export const PROVIDERS: { id: ProviderId; label: string; planned?: boolean; capabilities: string[] }[] = [
+	{ id: 'ollama', label: 'Ollama', capabilities: ['LLM'] },
+	{ id: 'deepseek', label: 'DeepSeek', capabilities: ['LLM'] },
+	{ id: 'comfyui', label: 'ComfyUI', capabilities: ['Image'] },
+	{ id: 'kokoro', label: 'Kokoro', capabilities: ['Voice'] },
+	{ id: 'ffmpeg', label: 'ffmpeg', capabilities: ['Audio', 'Video'] },
+	{ id: 'youtube', label: 'YouTube', capabilities: ['Publish'] },
+	{ id: 'instagram', label: 'Instagram', planned: true, capabilities: ['Publish'] }
 ];
 
 /** Ambient dots shown in title/status bars (local + llm providers). */

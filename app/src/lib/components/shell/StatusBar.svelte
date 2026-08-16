@@ -6,10 +6,31 @@
 	import Kbd from '$lib/components/primitives/Kbd.svelte';
 	import StatusDot from '$lib/components/primitives/StatusDot.svelte';
 	import Tooltip from '$lib/components/primitives/Tooltip.svelte';
-	import { AMBIENT_PROVIDERS, PROVIDERS } from '$lib/models/providers';
+	import { AMBIENT_PROVIDERS, PROVIDERS, type ProviderId } from '$lib/models/providers';
 	import type { AppStore } from '$lib/stores/app.store';
+	import type { ProvidersStore } from '$lib/stores/providers.store';
+	import type { UiStore } from '$lib/stores/ui.store';
 
-	let { app }: { app: AppStore } = $props();
+	let { app, providers, ui }: { app: AppStore; providers: ProvidersStore; ui: UiStore } = $props();
+
+	function dotFor(id: ProviderId) {
+		const entry = providers.health[id];
+		return entry.status === 'ok'
+			? 'ok'
+			: entry.status === 'checking'
+				? 'info'
+				: entry.status === 'error'
+					? 'error'
+					: 'unknown';
+	}
+
+	function labelFor(id: ProviderId) {
+		const entry = providers.health[id];
+		const name = PROVIDERS.find((p) => p.id === id)?.label ?? id;
+		if (entry.status === 'unknown' || entry.status === 'checking') return `${name} — probing…`;
+		const lat = entry.latencyMs != null ? ` · ${entry.latencyMs} ms` : '';
+		return `${name} — ${entry.status}${lat}`;
+	}
 </script>
 
 <footer class="statusbar">
@@ -22,13 +43,17 @@
 	</div>
 	<div class="sb-right">
 		<span class="sb-mono sb-eta">eta —</span>
-		<div class="sb-providers">
+		<button
+			class="sb-providers"
+			title="Connection Center — Cmd+Shift+D"
+			onclick={() => ui.openModal('connections')}
+		>
 			{#each AMBIENT_PROVIDERS as id (id)}
-				<Tooltip label={`${PROVIDERS.find((p) => p.id === id)?.label ?? id} — not probed yet`} below>
-					<span class="sb-provider"><StatusDot status="unknown" size={6} /></span>
+				<Tooltip label={labelFor(id)} below>
+					<span class="sb-provider"><StatusDot status={dotFor(id)} pulse={providers.health[id].status === 'checking'} size={6} /></span>
 				</Tooltip>
 			{/each}
-		</div>
+		</button>
 		<span class="sb-kbd"><Kbd>⌘K</Kbd></span>
 	</div>
 </footer>
@@ -68,6 +93,19 @@
 		display: flex;
 		align-items: center;
 		gap: var(--space-2);
+		padding: 0 var(--space-2);
+		height: 20px;
+		border: 1px solid transparent;
+		border-radius: var(--radius-sm);
+		background: transparent;
+		cursor: pointer;
+		transition:
+			border-color var(--dur-fast) var(--ease-out),
+			background-color var(--dur-fast) var(--ease-out);
+	}
+	.sb-providers:hover {
+		border-color: var(--border-default);
+		background: var(--surface-2);
 	}
 	.sb-provider {
 		display: inline-flex;

@@ -11,12 +11,15 @@
 	import EditorArea from './EditorArea.svelte';
 	import StatusBar from './StatusBar.svelte';
 	import CommandPalette from './CommandPalette.svelte';
+	import ConnectionCenter from './ConnectionCenter.svelte';
 	import Toast from '$lib/components/primitives/Toast.svelte';
 	import ApertureMark from '$lib/components/primitives/ApertureMark.svelte';
 	import { WORKBENCHES, type UiStore } from '$lib/stores/ui.store';
 	import type { LayoutStore } from '$lib/stores/layout.store';
 	import type { EditorStore } from '$lib/stores/editor.store';
 	import type { AppStore } from '$lib/stores/app.store';
+	import type { ProvidersStore } from '$lib/stores/providers.store';
+	import type { ConnectionsVm } from '$lib/viewmodels/connections.vm';
 	import { di } from '$lib/core/di';
 	import { APP_VERSION } from '$lib/core/config';
 	import type { Snippet } from 'svelte';
@@ -26,12 +29,16 @@
 		layout,
 		editor,
 		app,
+		providers,
+		connections,
 		children
 	}: {
 		ui: UiStore;
 		layout: LayoutStore;
 		editor: EditorStore;
 		app: AppStore;
+		providers: ProvidersStore;
+		connections: ConnectionsVm | null;
 		children?: Snippet;
 	} = $props();
 
@@ -116,9 +123,18 @@
 			}
 			return;
 		}
-		// Escape — dismiss palette
-		if (e.key === 'Escape' && ui.palette.open) {
-			ui.closePalette();
+		// Escape — dismiss palette or modal (UX §15)
+		if (e.key === 'Escape') {
+			if (ui.palette.open) {
+				ui.closePalette();
+			} else if (ui.modal !== 'none') {
+				ui.closeModal();
+			}
+		}
+		// Connection Center: Cmd/Ctrl+Shift+D (UX §15)
+		if (isMod(e) && e.shiftKey && (e.key === 'd' || e.key === 'D')) {
+			e.preventDefault();
+			ui.modal === 'connections' ? ui.closeModal() : ui.openModal('connections');
 		}
 	}
 </script>
@@ -146,7 +162,7 @@
 			</div>
 		</div>
 	{:else}
-		<TitleBar {ui} />
+		<TitleBar {ui} {providers} />
 		<WorkbenchBar {ui} {layout} />
 		<div class="stage">
 			<ActivityBar {layout} {ui} />
@@ -161,11 +177,15 @@
 				<DockZone side="bottom" {layout} {ui} />
 			</div>
 		</div>
-		<StatusBar {app} />
+		<StatusBar {app} {providers} {ui} />
 	{/if}
 
 	{#if ui.palette.open}
 		<CommandPalette {ui} {layout} {editor} {app} />
+	{/if}
+
+	{#if ui.modal === 'connections' && connections}
+		<ConnectionCenter ui={ui} store={providers} vm={connections} />
 	{/if}
 
 	<div class="toasts">

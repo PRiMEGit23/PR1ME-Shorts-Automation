@@ -7,12 +7,14 @@ import { Bridge, type IpcTransport } from '$lib/core/bridge';
 import { EventBus, type EventTransport } from '$lib/core/events';
 import { SettingsService } from '$lib/services/settings.service';
 import { LayoutService } from '$lib/services/layout.service';
+import { ProvidersService } from '$lib/services/providers.service';
 
 export interface AppServices {
 	bridge: Bridge;
 	events: EventBus;
 	settings: SettingsService;
 	layout: LayoutService;
+	providers: ProvidersService;
 }
 
 export function createServices(
@@ -25,7 +27,8 @@ export function createServices(
 		bridge,
 		events,
 		settings: new SettingsService(bridge),
-		layout: new LayoutService(bridge)
+		layout: new LayoutService(bridge),
+		providers: new ProvidersService(bridge)
 	};
 }
 

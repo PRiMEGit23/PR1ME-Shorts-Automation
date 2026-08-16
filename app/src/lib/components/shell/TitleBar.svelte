@@ -10,10 +10,30 @@
 	import StatusDot from '$lib/components/primitives/StatusDot.svelte';
 	import Tooltip from '$lib/components/primitives/Tooltip.svelte';
 	import { getCurrentWindow, type Window } from '@tauri-apps/api/window';
-	import { AMBIENT_PROVIDERS, PROVIDERS } from '$lib/models/providers';
+	import { AMBIENT_PROVIDERS, PROVIDERS, type ProviderId } from '$lib/models/providers';
 	import type { UiStore } from '$lib/stores/ui.store';
+	import type { ProvidersStore } from '$lib/stores/providers.store';
 
-	let { ui }: { ui: UiStore } = $props();
+	let { ui, providers }: { ui: UiStore; providers: ProvidersStore } = $props();
+
+	function dotFor(id: ProviderId) {
+		const entry = providers.health[id];
+		return entry.status === 'ok'
+			? 'ok'
+			: entry.status === 'checking'
+				? 'info'
+				: entry.status === 'error'
+					? 'error'
+					: 'unknown';
+	}
+
+	function labelFor(id: ProviderId) {
+		const entry = providers.health[id];
+		const name = PROVIDERS.find((p) => p.id === id)?.label ?? id;
+		if (entry.status === 'unknown' || entry.status === 'checking') return `${name} — probing…`;
+		const lat = entry.latencyMs != null ? ` · ${entry.latencyMs} ms` : '';
+		return `${name} — ${entry.status}${lat}`;
+	}
 
 	let win: Window | null = null;
 	let isMax = $state(false);
@@ -60,15 +80,19 @@
 	</div>
 
 	<div class="tb-right" data-tauri-drag-region>
-		<div class="tb-providers">
+		<button
+			class="tb-providers"
+			title="Connection Center — Cmd+Shift+D"
+			onclick={() => ui.openModal('connections')}
+		>
 			{#each AMBIENT_PROVIDERS as id (id)}
-				<Tooltip label={`${PROVIDERS.find((p) => p.id === id)?.label ?? id} — not probed yet`}>
+				<Tooltip label={labelFor(id)}>
 					<span class="tb-provider">
-						<StatusDot status="unknown" size={7} />
+						<StatusDot status={dotFor(id)} pulse={providers.health[id].status === 'checking'} size={7} />
 					</span>
 				</Tooltip>
 			{/each}
-		</div>
+		</button>
 		<button class="tb-queue" title="Render queue — active runs appear here" disabled>
 			<span class="tb-queue-label">(queue</span>
 			<span class="tb-queue-count mono">0</span>
@@ -159,6 +183,15 @@
 		height: 26px;
 		border: 1px solid var(--border-subtle);
 		border-radius: var(--radius-sm);
+		background: transparent;
+		cursor: pointer;
+		transition:
+			border-color var(--dur-fast) var(--ease-out),
+			background-color var(--dur-fast) var(--ease-out);
+	}
+	.tb-providers:hover {
+		border-color: var(--border-strong);
+		background: var(--surface-1);
 	}
 	.tb-provider {
 		display: inline-flex;
