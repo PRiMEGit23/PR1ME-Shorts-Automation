@@ -1,6 +1,8 @@
 # PR1ME Studio — Product Layer Architecture (LOCKED)
 
 **Status:** LOCKED. Governs everything under `app/`.
+**Alignment:** v2 — matches the workbench model of `UX_ARCHITECTURE.md` v2 and the design
+system of `VISUAL_DESIGN_SYSTEM.md` v2. Backend contract unchanged (`BACKEND_ARCHITECTURE.md`).
 
 ---
 
@@ -49,17 +51,12 @@ app/
 │   ├── app.html                    (SvelteKit template)
 │   ├── app.d.ts
 │   ├── main.ts                     (bootstrap: stores → bridge → shell)
-│   ├── routes/
-│   │   ├── +layout.svelte          (WindowShell: sidebar + dock + palette)
-│   │   ├── +page.svelte            (Dashboard)
-│   │   ├── generate/+page.svelte
-│   │   ├── queue/+page.svelte      (Batch Queue Manager)
-│   │   ├── projects/+page.svelte   (Project Manager)
-│   │   ├── knowledge/+page.svelte  (CSV Knowledge Base Manager)
-│   │   ├── assets/+page.svelte     (Asset Browser)
-│   │   ├── history/+page.svelte    (Render History)
-│   │   ├── runs/[runId]/+page.svelte      (Workflow Viewer)
-│   │   └── settings/+page.svelte   (Settings + Providers)
+│   └── routes/                     (SPA root only — workbenches are NOT routes;
+│                                   workbench = layout composition, one +layout)
+│       ├── +layout.svelte          (WindowShell: title bar, workbench bar,
+│       │                            activity bar, dock zones, status bar, palette)
+│       └── +page.svelte            (active workbench host; workbench switch swaps
+│                                    composition, not URL)
 │   ├── lib/
 │   │   ├── core/
 │   │   │   ├── di.ts               (AppServices container)
@@ -80,13 +77,15 @@ app/
 │   │   │   └── settings.ts         (SettingsModel)
 │   │   ├── services/
 │   │   │   ├── settings.service.ts     (load/save .env via bridge)
-│   │   │   ├── providers.service.ts    (health checks)
+│   │   │   ├── providers.service.ts    (health checks, Connection Center)
 │   │   │   ├── runs.service.ts         (list/watch runs, artifacts)
-│   │   │   ├── generate.service.ts     (spawn pr1me run, monitor)
-│   │   │   ├── queue.service.ts        (production os exports)
+│   │   │   ├── generate.service.ts     (spawn pr1me run, monitor, seed-bump regen)
+│   │   │   ├── queue.service.ts        (render board, production os exports)
 │   │   │   ├── knowledge.service.ts    (CSV read/write/validate)
 │   │   │   ├── assets.service.ts       (file tree, thumbnails)
-│   │   │   └── projects.service.ts     (project CRUD)
+│   │   │   ├── productions.service.ts  (production/episode records, approvals)
+│   │   │   ├── layout.service.ts       (workbench presets, dock state, floating windows)
+│   │   │   └── insights.service.ts     (learning/analytics exports)
 │   │   ├── stores/
 │   │   │   ├── app.store.ts        (root store, slice wiring)
 │   │   │   ├── settings.store.ts
@@ -95,31 +94,39 @@ app/
 │   │   │   ├── queue.store.ts
 │   │   │   ├── runs.store.ts
 │   │   │   ├── assets.store.ts
-│   │   │   ├── projects.store.ts
+│   │   │   ├── productions.store.ts
 │   │   │   ├── dashboard.store.ts
-│   │   │   └── ui.store.ts         (palette, toasts, navigation)
+│   │   │   ├── insights.store.ts
+│   │   │   ├── editor.store.ts     (open documents, tabs, undo stacks, selection)
+│   │   │   ├── layout.store.ts     (docking, splits, floating windows)
+│   │   │   └── ui.store.ts         (workbench, palette, toasts, modals, connections)
 │   │   ├── viewmodels/
-│   │   │   ├── dashboard.vm.ts
-│   │   │   ├── generate.vm.ts
-│   │   │   ├── queue.vm.ts
-│   │   │   ├── projects.vm.ts
-│   │   │   ├── knowledge.vm.ts
-│   │   │   ├── assets.vm.ts
-│   │   │   ├── history.vm.ts
+│   │   │   ├── library.vm.ts
+│   │   │   ├── script.vm.ts
+│   │   │   ├── storyboard.vm.ts
 │   │   │   ├── workflow.vm.ts
-│   │   │   └── settings.vm.ts
+│   │   │   ├── render.vm.ts
+│   │   │   ├── edit.vm.ts
+│   │   │   ├── deliver.vm.ts
+│   │   │   ├── insights.vm.ts
+│   │   │   └── connections.vm.ts
 │   │   └── components/
-│   │       ├── shell/              (WindowShell, Sidebar, Dock, TitleBar, CommandPalette)
-│   │       ├── layout/             (AppGrid, Panel, PanelGroup, SplitPane, StatusBar)
-│   │       ├── primitives/         (Button, IconButton, Input, Select, Checkbox, Toggle,
-│   │       │                        Slider, Badge, Tag, Tooltip, Kbd, Spinner, Progress,
-│   │       │                        Modal, Drawer, Toast, EmptyState, Skeleton)
-│   │       ├── data/               (DataTable, VirtualList, SearchInput, FilterBar,
-│   │       │                        Pagination, CellBadge, JsonView)
-│   │       ├── charts/             (Sparkline, BarChart, Donut, Gauge, Timeline)
-│   │       ├── media/              (VideoPlayer, ImageStrip, ImageCard, AudioPlayer)
-│   │       └── domain/             (GenerateButton, RunStatusBadge, StagePipeline,
-│   │                               WorkflowGraph, ProviderCard, RowEditor, JobRow)
+│   │       ├── shell/              (WindowShell, TitleBar, WorkbenchBar, ActivityBar,
+│   │       │                        DockZone, EditorArea, EditorTabs, StatusBar,
+│   │       │                        CommandPalette, FloatingWindow)
+│   │       ├── layout/             (Panel, PanelHeader, PanelGroup, SplitView,
+│   │       │                        DockPanel, DragHandle, EmptyState)
+│   │       ├── primitives/         (per Visual Design System §25.1)
+│   │       ├── data/               (DataGrid, VirtualList, TreeView, SearchField,
+│   │       │                        FilterChips, JsonView)
+│   │       ├── charts/             (Sparkline, BarChart, Donut, Gauge, Heatmap)
+│   │       ├── media/              (Player, TransportBar, Timecode, ImageStrip,
+│   │       │                        CandidateStrip, AudioWave)
+│   │       ├── domain/             (per workbench: ProductionCard, KnowledgeCard,
+│   │       │                        SceneCard, ChainNode, WorkflowNode, BoardColumn,
+│   │       │                        EpisodeCard, TimelineClip, ConnectionCard,
+│   │       │                        ProposalCard, StageRing, StageRail, StagePipeline)
+│   │       └── pictograms/         (CameraPicker, LightingPicker, CompositionPicker)
 │   └── styles/
 │       ├── tokens.css              (Visual Design System tokens)
 │       ├── base.css                (reset, scrollbars, focus rings)
@@ -136,10 +143,12 @@ app/
 │   │   ├── commands/
 │   │   │   ├── mod.rs
 │   │   │   ├── settings.rs         (.env read/write)
-│   │   │   ├── providers.rs        (health probes)
+│   │   │   ├── providers.rs        (health probes, Connection Center)
 │   │   │   ├── process.rs          (spawn/kill sidecar, stream stdout)
 │   │   │   ├── fs.rs               (read dir, watch dir, read file, thumbnails)
 │   │   │   ├── csv.rs              (read/write/validate CSV via sidecar)
+│   │   │   ├── productions.rs      (production/episode records, approvals)
+│   │   │   ├── layout.rs           (workbench presets, dock state, floating windows)
 │   │   │   └── app.rs              (version, platform, updater state)
 │   │   ├── bridge/
 │   │   │   ├── mod.rs
@@ -165,9 +174,9 @@ app/
 │ View (Svelte components)          — renders stores, emits  │
 │                                    intents (no logic)      │
 ├────────────────────────────────────────────────────────────┤
-│ ViewModel (plain TS classes)      — orchestrates one page  │
-│                                    (formatting, validation,│
-│                                    command sequencing)     │
+│ ViewModel (plain TS classes)      — orchestrates one workbench │
+│                                    (formatting, validation,    │
+│                                    command sequencing)         │
 ├────────────────────────────────────────────────────────────┤
 │ Store slices (rune-based)         — single source of truth │
 ├────────────────────────────────────────────────────────────┤
@@ -200,13 +209,16 @@ Rules:
 |---|---|---|
 | `settings` | `.env` map, repo dirs, durations, thresholds | settings.service |
 | `providers` | per-provider config + `HealthState` (`unknown\|checking\|ok\|error`, message, latency) | providers.service |
-| `knowledge` | rows (lazy, paginated), search query, edit buffer, validation report | knowledge.service |
-| `queue` | queue snapshot, status counts, selected job, filters | queue.service |
-| `dashboard` | exports (report/dashboard/queue/projects/workers/resources), tick | queue.service |
+| `knowledge` | rows (lazy, windowed), search query, edit buffer, validation report | knowledge.service |
+| `queue` | render board: queued/running/done episodes, stage states, ETA, filters | queue.service + bridge events |
+| `dashboard` | Production OS exports (report/dashboard/queue/projects/workers/resources), tick | queue.service |
 | `runs` | known runs, per-run: manifest, execution report, events tail, stage states, live flag | runs.service + bridge events |
 | `assets` | directory tree, selected path, thumbnails | assets.service |
-| `projects` | project list, per-project runs, create/resume actions | projects.service + runs.service |
-| `ui` | active route, palette open, toasts, modals, sidebar/dock state, theme | — |
+| `productions` | current production, episode records, approvals, policy, templates | productions.service + runs.service |
+| `insights` | learning proposals, analytics data, filters | insights.service |
+| `editor` | open documents (script/storyboard/workflow/deliver), tabs, undo stacks, selection | services via stores |
+| `layout` | workbench presets, dock zone contents, splits, floating windows, panel visibility | layout.service |
+| `ui` | active workbench, palette, toasts, modals, connections center, theme | — |
 
 ---
 
@@ -220,7 +232,8 @@ pair). Events are emitted with namespaced payloads.
 | `app_version` | — | `{version, platform, arch, pr1me_version}` | About/update |
 | `settings_load` | — | `SettingsModel` (parsed `.env` + dirs) | Boot |
 | `settings_save` | `SettingsModel` (full) | `{ok}` | Persist `.env` |
-| `providers_health` | `{provider: ProviderId}` | `HealthState` | Provider card probes |
+| `providers_health` | `{provider: ProviderId}` | `HealthState` | Connection cards |
+| `providers_health_all` | — | `HealthState[]` | Ambient dots |
 | `env_probe` | `{name}` | `{value: string\|null}` | Test provider env |
 | `fs_tree` | `{path, maxDepth, includeHidden}` | `FsEntry[]` | Asset browser |
 | `fs_read_text` | `{path}` | `{content}` | JSON/CSV preview |
@@ -228,66 +241,88 @@ pair). Events are emitted with namespaced payloads.
 | `csv_read` | `{path, offset, limit}` | `{header, rows, total}` | KB manager |
 | `csv_write` | `{path, header, rows}` | `{ok}` | KB save (atomic) |
 | `csv_validate` | `{path}` | `ValidationReport` | Runs `validate_knowledge_csv.py` |
-| `generate_start` | `{rows: {index, topic}[], projectId?, seed?, maxAttempts?, publish?}` | `{runIds}` | Spawn `pr1me run` per row |
+| `generate_start` | `{episodes: {index, topic, slug}[], production, seed?, maxAttempts?, publish?}` | `{runIds}` | Spawn `pr1me run` per episode |
+| `generate_regen` | `{runId, scene?}` | `{ok}` | Re-run `--resume --seed <next>` (scene regen) |
 | `generate_stop` | `{runId}` | `{ok}` | Kill process |
-| `generate_resume` | `{runId}` | `{ok}` | Re-spawn with `--resume` |
-| `process_logs` | `{runId, tail}` | `{lines}` | Log tail viewer |
-| `run_list` | — | `RunSummary[]` | Scan `output/runs/*` |
-| `run_manifest` | `{runId}` | `RunManifest` | Workflow viewer |
-| `run_report` | `{runId}` | `ExecutionReport` | History/QA |
-| `run_events` | `{runId}` | `PipelineEvent[]` | Timeline |
-| `run_history` | `{runId, sceneId}` | `RenderHistory` | Render history |
-| `workflow_read` | `{runId, sceneId}` | `BackendWorkflow` | Workflow viewer |
+| `process_logs` | `{runId, tail}` | `{lines}` | Log tail (Terminal dock) |
+| `run_list` | — | `RunSummary[]` | Explorer/Render board |
+| `run_manifest` | `{runId}` | `RunManifest` | Storyboard/Workflow |
+| `run_report` | `{runId}` | `ExecutionReport` | Stage states, QA, history |
+| `run_events` | `{runId}` | `PipelineEvent[]` | Live stage rail |
+| `run_history` | `{runId, sceneId}` | `RenderHistory` | Candidate strips |
+| `workflow_read` | `{runId, sceneId}` | `BackendWorkflow` | Workflow graph |
 | `image_open` | `{path}` | `{ok}` | Open in system viewer |
 | `export_dashboard` | `{ticks?}` | `DashboardView` | Production OS exports |
-| `project_create` | `{name, rows[], settings}` | `{projectId}` | Project manager |
-| `project_list` | — | `ProjectView[]` | Project manager |
+| `production_list` | — | `ProductionSummary[]` | Library |
+| `production_create` | `{name, template?, policy}` | `{production}` | Library |
+| `production_load` | `{productionId}` | `ProductionModel` | Scopes the window |
+| `production_save` | `ProductionModel` (full) | `{ok}` | Approvals/policy/episodes (product-owned, atomic) |
+| `layout_save` | `{workbench, LayoutState}` | `{ok}` | Persist dock composition |
+| `window_detach` | `{panelId}` | `{windowLabel}` | Floating panel window (multi-monitor) |
 | `updater_check` | — | `UpdateInfo\|null` | Auto-update |
 
 ### Event payloads (Rust → UI)
 
 | Event | Payload | Emitted |
 |---|---|---|
-| `run:started` | `{runId, processId, topic}` | process spawn |
+| `run:started` | `{runId, processId, topic, episodeSlug}` | process spawn |
 | `run:stage` | `{runId, stageId, status, offsetMs}` | events.json tail detect |
 | `run:progress` | `{runId, stageId, attempt?, detail?}` | resource_sample/cache events |
+| `run:candidate` | `{runId, sceneId, attemptId, imagePath}` | new history/attempt artifact |
 | `run:completed` | `{runId, status, runDir, report}` | process exit 0 + manifest |
 | `run:failed` | `{runId, error}` | process exit != 0 |
-| `fs:change` | `{path, kind}` | watcher (debounced) |
+| `run:logline` | `{runId, line}` | stdout capture |
+| `fs:change` | `{path, kind}` | watcher (debounced 200 ms) |
 | `generate:queued` | `{runId, position}` | batch start |
 | `updater:status` | `{state, version?, progress?}` | updater lifecycle |
 
 ---
 
-## 7. Generation Flow (one-click Generate)
+## 7. Window & Layout Model
 
-1. `GenerateViewModel` collects scope: rows selected in Knowledge store (or `--row`),
-   project binding, `seed`, `max_attempts`, publish toggle.
-2. `generate_start` → Rust spawns `pr1me run` per row with env from settings store
-   (`PR1ME_*` merged over `.env`), `--run-dir <output>/runs/<runId>/<topic>`.
-3. Watcher on `<runDir>` emits `fs:change`; Rust tails `events.json` and re-emits
-   `run:stage`/`run:progress`. Store updates stage states; StagePipeline renders the 15
-   stage rail.
-4. On exit 0: Rust reads `manifest.json` + `reports/execution_report.json`, emits
-   `run:completed`; store links run to project, refreshes history/assets.
-5. Failure: exit 1 + `run:failed`; error banner from error code; Retry button
-   (`generate_resume`).
+- One main window (title bar, workbench bar, activity bar, dock zones, editor area, status
+  bar). **Floating windows** (Tauri multi-window) host detached panels for multi-monitor use;
+  `window_detach` creates them, drag-back re-docks.
+- Workbench = layout composition. `layout.store` holds per-workbench presets (zone contents,
+  sizes, splits, panel visibility); `layout_save` persists to
+  `config/ui-layout.json` (product-owned).
+- Workbench switching is a state change, never a route change; the SPA has exactly one route.
 
 ---
 
-## 8. Concurrency & Limits
+## 8. Generation Flow (queue → live board)
 
-- Batch generation runs sequentially per project (1 concurrent `pr1me` process);
-  queue view shows planned runs with position.
-- One fs watcher per run dir; debounced 200 ms.
-- `events.json` tail poll 500 ms only while process alive.
+1. Episodes are queued from anywhere (Script gallery, palette, Library, drag onto Render
+   board). `render.vm` owns the board: queued → running → done.
+2. `generate_start` → Rust spawns `pr1me run` (1 concurrent process, product-enforced)
+   per episode with env from settings store, `--run-dir <output>/runs/<prod-slug>/<episode-slug>`
+   and `--row <topic>`.
+3. Watcher on the run dir emits `fs:change`; Rust tails `events.json` and re-emits
+   `run:stage`/`run:progress`/`run:candidate`. The board's stage ring + rail advance; new
+   thumbnails stream into candidate strips.
+4. Exit 0: `run:completed`; store links the run to the episode, updates Explorer/Assets.
+5. Exit != 0: `run:failed`; card turns error with code + Fix (Connections) and Retry
+   (`--resume`).
+6. **Regenerate (scene or episode)**: `generate_regen` re-spawns `--resume --seed <n+1>`.
+   Upstream stage fingerprints are unchanged → cache hits; only `render_loop` re-runs.
+   Deterministic, backend-untouched. Approval/candidate state is product-owned
+   (`production.json`).
+
+---
+
+## 9. Concurrency & Limits
+
+- One `pr1me` process at a time (product-enforced); the board shows honest queue positions.
+- One fs watcher per run dir; debounced 200 ms; `events.json` tail poll 500 ms only while
+  alive.
 - CSV write is atomic (tmp + rename), exclusive lock via Rust mutex.
-- All paths are canonicalized; UI never receives paths outside
-  `repo_root/output`, `repo_root/assets`, `repo_root/config`, `.env`.
+- All paths canonicalized; UI never receives paths outside
+  `repo_root/output`, `repo_root/assets`, `repo_root/config`, `.env`, and
+  `config/productions/**`.
 
 ---
 
-## 9. Security
+## 10. Security
 
 - Webview has no `shell` capability; all process execution goes through the Rust
   `process` module with a fixed allowlist (`pr1me.exe`, `validate_knowledge_csv.py`,
