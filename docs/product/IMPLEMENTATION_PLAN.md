@@ -30,13 +30,14 @@ Features, in order:
 
 1. **Initialize Tauri project** — `app/` workspace: `npm create tauri-app` scaffold
    (SvelteKit template), `tauri.conf.json` (identifier `labs.pr1me.studio`, product
-   name `PR1ME Studio`, window 1440×900 min 960×600, `decorations: true`), capabilities
+   name `PR1ME Studio`, window 1440×900 min 960×600, `decorations: false` — custom
+   title bar 40 px per Visual Design System v3 §8), capabilities
    allowlist (no shell in webview), deps: `@tauri-apps/api`, plugins `shell`, `fs`,
    `dialog`, `updater`, `process`. ESLint/Prettier/TS strict wired.
 2. **Configure SvelteKit** — `adapter-static` SPA with **one route**, `ssr: false`,
    `prerender: false`, `base: ''`, tsconfig strict with `noUncheckedIndexedAccess`,
    alias `$lib`. `svelte-check` + Vitest (jsdom) wired.
-3. **Theme tokens** — `src/lib/styles/tokens.css` exactly per Visual Design System v2
+3. **Theme tokens** — `src/lib/styles/tokens.css` exactly per Visual Design System v3
    (tokens + chrome sizes + motion), plus `base.css` and `utilities.css`.
 4. **Layout system** — `Panel`, `PanelHeader`, `DockZone`, `PanelGroup`, `SplitView`,
    `DragHandle`, `EditorArea` on the 4 px grid; dock zones left/right/bottom with

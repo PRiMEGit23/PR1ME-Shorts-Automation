@@ -74,7 +74,7 @@ What survives from v1 (correct instincts we keep and refine):
 12. **No contextual menus.** Right-click was never specified. Every surface (scene, node, clip,
     provider, KB card) needs one.
 13. **Generic dark-admin aesthetic.** v1 tokens were competent but anonymous — any B2B dark
-    theme. The product needs a distinct design language (see Visual Design System v2):
+    theme. The product needs a distinct design language (see Visual Design System v3):
     editorial typography, restrained color, filmstrip chrome.
 14. **History/dashboard as landing content.** Landing on charts is the definitive admin tell.
     Land on *work*; show charts only in Insights.
