@@ -1,0 +1,151 @@
+/* PR1ME Studio — utilities (layout helpers) */
+
+.numeric {
+	font-family: var(--font-mono);
+	font-variant-numeric: var(--numeric);
+}
+
+.label {
+	font: var(--label);
+	text-transform: uppercase;
+	letter-spacing: 0.06em;
+}
+
+.mono-xs {
+	font: var(--mono-xs);
+}
+
+.mono-sm {
+	font: var(--mono-sm);
+}
+
+.truncate {
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.row {
+	display: flex;
+	flex-direction: row;
+	align-items: center;
+}
+
+.col {
+	display: flex;
+	flex-direction: column;
+}
+
+.gap-1 {
+	gap: var(--space-1);
+}
+
+.gap-2 {
+	gap: var(--space-2);
+}
+
+.gap-3 {
+	gap: var(--space-3);
+}
+
+.gap-4 {
+	gap: var(--space-4);
+}
+
+.flex-1 {
+	flex: 1 1 0;
+	min-width: 0;
+	min-height: 0;
+}
+
+.hidden {
+	display: none !important;
+}
+
+.text-primary {
+	color: var(--text-primary);
+}
+
+.text-secondary {
+	color: var(--text-secondary);
+}
+
+.text-tertiary {
+	color: var(--text-tertiary);
+}
+
+.accent-text {
+	color: var(--accent);
+}
+
+.ok-text {
+	color: var(--status-ok);
+}
+
+.warn-text {
+	color: var(--status-warn);
+}
+
+.error-text {
+	color: var(--status-error);
+}
+
+.info-text {
+	color: var(--status-info);
+}
+
+/* glass — only the five float surfaces use it (VDS §33) */
+.glass {
+	background: var(--surface-glass);
+	backdrop-filter: blur(12px) saturate(1.4);
+}
+
+/* card hover lift — cards only, 200 ms */
+.lift {
+	transition: transform var(--dur-base) var(--ease-out),
+		border-color var(--dur-base) var(--ease-in-out), box-shadow var(--dur-base) var(--ease-out);
+}
+
+.lift:hover {
+	transform: translateY(-1.5px);
+	box-shadow: var(--shadow-1);
+}
+
+/* blueprint canvas grid (canvas workbenches only) */
+.canvas-grid {
+	background-image: var(--canvas-grid);
+	background-size: var(--canvas-grid-size) var(--canvas-grid-size);
+}
+
+/* filmstrip perforation rhythm — 6×12 notches */
+.perforations {
+	background-image: repeating-linear-gradient(
+		90deg,
+		var(--accent) 0,
+		var(--accent) 6px,
+		transparent 6px,
+		transparent 12px
+	);
+}
+
+/* selection accent bar */
+.accent-bar-left {
+	border-left: 2px solid var(--accent);
+}
+
+/* JSON coloring (VDS §24 rule 6) */
+.json-key {
+	color: var(--text-primary);
+}
+
+.json-string {
+	color: var(--chart-2);
+}
+
+.json-number {
+	color: var(--chart-4);
+}
+
+.json-bool {
+	color: var(--chart-6);
+}

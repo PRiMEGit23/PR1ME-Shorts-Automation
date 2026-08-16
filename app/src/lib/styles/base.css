@@ -1,0 +1,97 @@
+/* PR1ME Studio — base (reset, scrollbars, focus rings) */
+
+*,
+*::before,
+*::after {
+	box-sizing: border-box;
+}
+
+* {
+	margin: 0;
+}
+
+html,
+body {
+	height: 100%;
+	overflow: hidden;
+}
+
+body {
+	font: var(--body-md);
+	font-family: var(--font-ui);
+	color: var(--text-primary);
+	background: var(--surface-0);
+	-webkit-font-smoothing: antialiased;
+	text-rendering: optimizeLegibility;
+	user-select: none;
+}
+
+input,
+textarea,
+select,
+[contenteditable='true'] {
+	user-select: text;
+}
+
+button {
+	font: inherit;
+	color: inherit;
+	background: none;
+	border: none;
+	padding: 0;
+	cursor: pointer;
+}
+
+button:disabled {
+	cursor: default;
+}
+
+a {
+	color: var(--text-link);
+	text-decoration: none;
+}
+
+a:hover {
+	text-decoration: underline;
+}
+
+/* focus — 2 px #4C8DFF ring + 1 px gap, never removed */
+:focus-visible {
+	outline: none;
+	box-shadow: var(--ring);
+}
+
+::selection {
+	background: var(--selection-bg);
+	color: var(--selection-color);
+}
+
+/* scrollbars — 10 px, thumb surface-4, track transparent, hover border-strong */
+::-webkit-scrollbar {
+	width: var(--scrollbar-size);
+	height: var(--scrollbar-size);
+}
+
+::-webkit-scrollbar-track {
+	background: var(--scrollbar-track);
+}
+
+::-webkit-scrollbar-thumb {
+	background: var(--scrollbar-thumb);
+	border-radius: var(--scrollbar-radius);
+}
+
+::-webkit-scrollbar-thumb:hover {
+	background: var(--scrollbar-thumb-hover);
+}
+
+/* reduced motion — transforms → opacity, durations 0 ms (progress keeps) */
+@media (prefers-reduced-motion: reduce) {
+	*,
+	*::before,
+	*::after {
+		animation-duration: 0ms !important;
+		animation-iteration-count: 1 !important;
+		transition-duration: 0ms !important;
+	}
+}

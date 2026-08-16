@@ -1,0 +1,220 @@
+/* ============================================================
+   PR1ME Studio — Design Tokens (VISUAL_DESIGN_SYSTEM.md v3 §34/§35)
+   SINGLE SOURCE OF TRUTH. Components never hardcode hex/radii/shadow.
+   ============================================================ */
+
+:root {
+	/* ---------- surfaces (value ladder) ---------- */
+	--surface-0: #0b0e14;
+	--surface-1: #10141c;
+	--surface-2: #151a24;
+	--surface-3: #1b212e;
+	--surface-4: #232b3b;
+	--overlay: rgba(4, 6, 10, 0.72);
+	--surface-glass: rgba(16, 20, 28, 0.78);
+
+	/* ---------- borders ---------- */
+	--border-subtle: #1a212d;
+	--border-default: #242d3d;
+	--border-strong: #303b50;
+	--border-accent: #4c8dff;
+
+	/* ---------- text ---------- */
+	--text-primary: #e8ecf4;
+	--text-secondary: #9aa4b8;
+	--text-tertiary: #5e6a80;
+	--text-inverse: #0b0e14;
+	--text-link: #6fa3ff;
+
+	/* ---------- status ---------- */
+	--status-ok: #3fb96a;
+	--status-ok-soft: rgba(63, 185, 106, 0.14);
+	--status-warn: #e5a83b;
+	--status-warn-soft: rgba(229, 168, 59, 0.14);
+	--status-error: #e5484d;
+	--status-error-soft: rgba(229, 72, 77, 0.14);
+	--status-info: #38bdf8;
+	--status-info-soft: rgba(56, 189, 248, 0.14);
+	--status-muted: #5e6a80;
+	--status-muted-soft: rgba(94, 106, 128, 0.14);
+
+	/* ---------- charts ---------- */
+	--chart-1: #3d7eff;
+	--chart-2: #38bdf8;
+	--chart-3: #3fb96a;
+	--chart-4: #e5a83b;
+	--chart-5: #e5484d;
+	--chart-6: #a78bfa;
+
+	/* ---------- accent (PRIME Blue) ---------- */
+	--accent: #3d7eff;
+	--accent-hover: #5b93ff;
+	--accent-active: #2e66d6;
+	--accent-soft: rgba(61, 126, 255, 0.14);
+	--accent-soft-strong: rgba(61, 126, 255, 0.24);
+	--accent-gradient: linear-gradient(135deg, #6fa3ff, #3d7eff 55%, #2e66d6);
+	--accent-glow: 0 0 24px rgba(61, 126, 255, 0.1);
+
+	/* ---------- radius ---------- */
+	--radius-sm: 4px;
+	--radius-md: 6px;
+	--radius-lg: 12px;
+	--radius-full: 999px;
+
+	/* ---------- shadows ---------- */
+	--shadow-1: 0 1px 2px rgba(0, 0, 0, 0.4);
+	--shadow-2: 0 4px 12px rgba(0, 0, 0, 0.45);
+	--shadow-3: 0 12px 40px rgba(0, 0, 0, 0.55);
+	--shadow-4: 0 24px 64px rgba(0, 0, 0, 0.6);
+	--ring: 0 0 0 2px #4c8dff;
+
+	/* ---------- space (4 px grid) ---------- */
+	--space-1: 4px;
+	--space-2: 8px;
+	--space-3: 12px;
+	--space-4: 16px;
+	--space-5: 24px;
+	--space-6: 32px;
+	--space-7: 48px;
+
+	/* ---------- motion ---------- */
+	--ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+	--ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+	--ease-snap: cubic-bezier(0.2, 0, 0, 1);
+	--dur-fast: 100ms;
+	--dur-base: 200ms;
+	--dur-slow: 300ms;
+	--dur-toast: 240ms;
+	--dur-shimmer: 1.2s;
+	--dur-pulse: 1.6s;
+
+	/* ---------- fonts ---------- */
+	--font-ui: 'Segoe UI', system-ui, -apple-system, sans-serif;
+	--font-mono: 'Cascadia Mono', 'Consolas', 'SF Mono', 'Courier New', monospace;
+
+	/* ---------- type scale (font shorthand: weight size/line-height family) ---------- */
+	--display-2xl: 650 28px/36px var(--font-ui);
+	--display-xl: 650 24px/32px var(--font-ui);
+	--title-lg: 600 19px/27px var(--font-ui);
+	--title-md: 600 16px/24px var(--font-ui);
+	--body-lg: 500 14px/21px var(--font-ui);
+	--body-md: 500 13px/19px var(--font-ui);
+	--body-sm: 500 12.5px/18px var(--font-ui);
+	--label: 600 11px/16px var(--font-ui);
+	--mono-xs: 400 11px/16px var(--font-mono);
+	--mono-sm: 500 12.5px/18px var(--font-mono);
+
+	/* ---------- numeric (all numbers: mono + tabular) ---------- */
+	--numeric: tabular-nums;
+
+	/* ---------- focus / selection / scrollbar / canvas ---------- */
+	--focus-ring: 0 0 0 2px #4c8dff;
+	--selection-bg: var(--accent-soft);
+	--selection-color: var(--text-primary);
+	--scrollbar-size: 10px;
+	--scrollbar-thumb: var(--surface-4);
+	--scrollbar-thumb-hover: var(--border-strong);
+	--scrollbar-track: transparent;
+	--scrollbar-radius: var(--radius-full);
+	--canvas-grid: radial-gradient(circle, rgba(26, 33, 45, 0.2) 1px, transparent 1px);
+	--canvas-grid-size: 24px;
+
+	/* ---------- chrome sizes (VDS §30, locked) ---------- */
+	--chrome-title: 40px;
+	--chrome-workbench: 44px;
+	--chrome-activity: 64px;
+	--chrome-panel-header: 40px;
+	--chrome-status: 26px;
+	--chrome-editor-tab: 36px;
+	--dock-left: 280px;
+	--dock-right: 320px;
+	--dock-bottom: 200px;
+	--control-h: 34px;
+	--tree-row: 26px;
+	--table-row: 40px;
+
+	/* ============================================================
+	   COMPONENT TOKENS (VDS §35) — components consume these only
+	   ============================================================ */
+
+	/* buttons */
+	--btn-primary-bg: var(--accent);
+	--btn-primary-text: var(--text-inverse);
+	--btn-primary-hover: var(--accent-hover);
+	--btn-primary-active: var(--accent-active);
+	--btn-secondary-bg: var(--surface-3);
+	--btn-secondary-border: var(--border-default);
+	--btn-secondary-text: var(--text-primary);
+	--btn-secondary-hover: var(--surface-4);
+	--btn-ghost-text: var(--text-secondary);
+	--btn-ghost-hover: var(--surface-3);
+	--btn-danger-bg: var(--status-error);
+	--btn-danger-hover: color-mix(in srgb, var(--status-error) 94%, black);
+	--btn-disabled-opacity: 0.45;
+	--btn-radius: var(--radius-md);
+	--btn-h: var(--control-h);
+	--btn-px: var(--space-4);
+	--btn-cta-h: 38px;
+	--btn-cta-px: 20px;
+
+	/* inputs */
+	--input-bg: var(--surface-3);
+	--input-border: var(--border-default);
+	--input-h: var(--control-h);
+	--input-radius: var(--radius-md);
+	--input-focus-border: var(--border-accent);
+	--input-error-border: var(--status-error);
+
+	/* cards */
+	--card-bg: var(--surface-1);
+	--card-border: var(--border-default);
+	--card-radius: var(--radius-md);
+	--card-padding: var(--space-3);
+	--card-hover-border: var(--border-strong);
+	--card-selected-border: var(--accent);
+	--card-selected-bg: var(--accent-soft);
+
+	/* panels */
+	--panel-header-bg: var(--surface-2);
+	--panel-header-h: var(--chrome-panel-header);
+	--panel-body-bg: var(--surface-1);
+	--panel-border: var(--border-subtle);
+
+	/* tree / table */
+	--tree-row-h: var(--tree-row);
+	--tree-row-hover: var(--surface-3);
+	--tree-row-selected: var(--accent-soft);
+	--table-header-bg: var(--surface-2);
+	--table-row-h: var(--table-row);
+	--table-row-hover: var(--surface-3);
+	--table-row-selected: var(--accent-soft);
+
+	/* badge / chip / kbd / tooltip */
+	--badge-h: 20px;
+	--badge-radius: var(--radius-sm);
+	--badge-px: var(--space-2);
+	--chip-h: 22px;
+	--chip-radius: var(--radius-sm);
+	--chip-bg: var(--surface-3);
+	--chip-border: var(--border-default);
+	--kbd-bg: var(--surface-3);
+	--kbd-border: var(--border-default);
+	--kbd-radius: var(--radius-sm);
+	--kbd-px: var(--space-1);
+	--tooltip-bg: var(--surface-glass);
+	--tooltip-border: var(--border-default);
+	--tooltip-radius: var(--radius-sm);
+
+	/* toast / modal */
+	--toast-bg: var(--surface-glass);
+	--toast-border: var(--border-default);
+	--toast-radius: var(--radius-lg);
+	--toast-shadow: var(--shadow-2);
+	--modal-bg: var(--surface-1);
+	--modal-radius: var(--radius-lg);
+	--modal-shadow: var(--shadow-3);
+
+	/* media */
+	--thumb-radius: var(--radius-md);
+	--queue-card-w: 280px;
+}
