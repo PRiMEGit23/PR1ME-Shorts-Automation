@@ -14,7 +14,7 @@ import { QueueService } from '$lib/services/queue.service';
 	const bridge = {} as Bridge;
 
 	// Reactive state from bridge
-	let queueStatus = $derived({ active: [], tick: 0 });
+	let queueStatus = $state<QueueStatus>({ active: [], tick: 0 });
 	let items = $derived<any[]>([]);
 	let mode = $state('board' as 'board' | 'dashboard' | 'history');
 	let selectedItem = $state<{ id: string } | null>(null);
@@ -52,7 +52,7 @@ import { QueueService } from '$lib/services/queue.service';
 	}
 
 	// Helper functions
-	async function selectItem(id: string): void {
+	async function selectItem(id: string): Promise<void> {
 		selectedItem = { id };
 		showInspector = true;
 	}

@@ -54,23 +54,23 @@ export class RenderVm {
 
 	private wireSubscriptions(): void {
 		// History changes → re-derive KPIs
-		this._historyUnsub = queueStore.items.subscribe(() => {
+		this._historyUnsub = queueStore.subscribe(() => {
 			dashboardStore.loadHistory();
 		});
 
 		// Queue status from Rust
-		this._queueStatusUnsub = queueStore.items.subscribe(() => {
+		this._queueStatusUnsub = queueStore.subscribe(() => {
 			// UI updates via derived computed values
 		});
 
 		// Progress for selected run
-		this._progressUnsub = queueStore.items.subscribe(() => {
+		this._progressUnsub = queueStore.subscribe(() => {
 			// UI re-renders via $derived when items change
 		});
 
 		// Logs for selected run
 		const linesStore = $derived(
-			queueStore.items.length > 0 ? 'has items' : 'empty'
+			get(queueStore).items.length > 0 ? 'has items' : 'empty'
 		);
 	}
 
@@ -108,9 +108,10 @@ export class RenderVm {
 			pushToast('info', 'Retry started', {
 				message: `Resuming render for ${this.selectedRunId}`,
 			});
-			const item = queueStore.items.find((i) => i.id === this.selectedRunId);
+			const qs = get(queueStore);
+			const item = qs.items.find((i) => i.id === this.selectedRunId);
 			if (item) item.status = 'retrying';
-			queueStore.items = [...queueStore.items];
+			queueStore.set({ ...qs, items: [...qs.items] });
 		}
 	}
 
@@ -121,13 +122,14 @@ export class RenderVm {
 			pushToast('error', 'Render cancelled', {
 				message: `Job aborted for ${this.selectedRunId}`,
 			});
-			const item = queueStore.items.find((i) => i.id === this.selectedRunId);
+			const qs = get(queueStore);
+			const item = qs.items.find((i) => i.id === this.selectedRunId);
 			if (item) {
 				item.status = 'cancelled';
 				item.error = 'job_aborted';
 				item.finishedAt = new Date().toISOString();
 			}
-			queueStore.items = [...queueStore.items];
+			queueStore.set({ ...qs, items: [...qs.items] });
 			this.closeInspector();
 		}
 	}
@@ -183,7 +185,7 @@ export class RenderVm {
 				runId: null,
 				runDir: null,
 				batchId: '',
-				position: queueStore.items.length,
+				position: get(queueStore).items.length,
 				stageStates: {},
 				stageOrder: [],
 				overallPct: 0,
@@ -198,7 +200,8 @@ export class RenderVm {
 				durationMs: null,
 				finishedAt: null,
 			};
-			queueStore.items = [...queueStore.items, newItem];
+			const qs = get(queueStore);
+			queueStore.set({ ...qs, items: [...qs.items, newItem] });
 			pushToast('info', 'Queue item added', {
 				message: `Added ${topic} to render queue`,
 			});

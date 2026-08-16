@@ -19,7 +19,7 @@ import Badge from '$lib/components/primitives/Badge.svelte';
 	let publishStatus = $derived('dry-run' as string);
 
 	// Select a run to inspect
-	async function selectRun(runId: string): void {
+	async function selectRun(runId: string): Promise<void> {
 		selectedRunId = runId;
 		showInspector = true;
 		// fetch progress + metadata

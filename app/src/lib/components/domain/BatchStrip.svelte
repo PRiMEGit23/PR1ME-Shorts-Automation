@@ -17,9 +17,9 @@ let throughput = $derived(0); // items per minute (placeholder)
 	<div class="batch-header">
 		<span>Batch Progress</span>
 		<div class="batch-counts">
-			<Badge status="completed">{completed}</Badge>
-			<Badge status="pending">{remaining}</Badge>
-			<Badge status="failed">{failed}</Badge>
+			<Badge status="ok">{completed}</Badge>
+			<Badge status="info">{remaining}</Badge>
+			<Badge status="error">{failed}</Badge>
 		</div>
 	</div>
 	<div class="batch-eta">

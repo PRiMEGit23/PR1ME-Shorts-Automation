@@ -16,6 +16,22 @@ import type { StoryboardBundle, PromptChainBundle } from '$lib/models/storyboard
 import type { QueueSnapshot } from '$lib/models/queue';
 import type { DashboardView } from '$lib/models/dashboard';
 import type {
+	ProductionReport,
+	DashboardExport,
+	WorkerStatistics,
+	ResourceStatistics
+} from '$lib/models/dashboard';
+import type {
+	ActiveRun,
+	QueueStatus,
+	HistoryRun,
+	RenderProgress,
+	RenderLogs,
+	ProductionStats,
+	QueueItem,
+	DashboardStats
+} from '$lib/models/render';
+import type {
 	ProductionCreateArgs,
 	ProductionModel,
 	ProductionSummary
@@ -222,6 +238,50 @@ export class Bridge {
 
 	export_dashboard(ticks?: number): Promise<DashboardView> {
 		return this.invoke<DashboardView>('export_dashboard', { ticks });
+	}
+
+	/* ---------- 2S5: Render Queue + Production Dashboard ---------- */
+
+	queue_status(): Promise<QueueStatus> {
+		return this.invoke<QueueStatus>('queue_status');
+	}
+
+	production_stats(): Promise<ProductionStats> {
+		return this.invoke<ProductionStats>('production_stats');
+	}
+
+	render_history(): Promise<HistoryRun[]> {
+		return this.invoke<HistoryRun[]>('render_history');
+	}
+
+	render_progress(runId: string): Promise<RenderProgress> {
+		return this.invoke<RenderProgress>('render_progress', { runId });
+	}
+
+	render_logs(runId: string, tail: number): Promise<RenderLogs> {
+		return this.invoke<RenderLogs>('render_logs', { runId, tail });
+	}
+
+	cancel_render(runId: string): Promise<OkPayload> {
+		return this.invoke<OkPayload>('cancel_render', { runId });
+	}
+
+	retry_render(runId: string, seed: number | null): Promise<OkPayload> {
+		return this.invoke<OkPayload>('retry_render', { runId, seed });
+	}
+
+	resume_render(args: {
+		run_dir: string;
+		topic: string;
+		seed?: number;
+		max_attempts?: number;
+		publish?: boolean;
+	}): Promise<OkPayload> {
+		return this.invoke<OkPayload>('resume_render', args);
+	}
+
+	open_output_folder(runId: string): Promise<OkPayload> {
+		return this.invoke<OkPayload>('open_output_folder', { runId });
 	}
 
 	/* ---------- 2S5: fs, edit, multi-monitor ---------- */
