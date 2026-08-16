@@ -19,7 +19,7 @@
 </script>
 
 <div class="empty">
-	<div class="e-icon"><Icon name={icon} size={20} /></div>
+	<div class="e-icon"><Icon name={icon} size={24} /></div>
 	<div class="e-title">{title}</div>
 	{#if subtitle}
 		<div class="e-sub">{subtitle}</div>
@@ -43,10 +43,6 @@
 		display: inline-flex;
 		align-items: center;
 		justify-content: center;
-		width: 40px;
-		height: 40px;
-		border-radius: var(--radius-md);
-		background: var(--surface-3);
 		color: var(--text-tertiary);
 		margin-bottom: var(--space-1);
 	}

@@ -6,9 +6,8 @@ import { describe, expect, it } from 'vitest';
 import { UiStore, WORKBENCHES } from '$lib/stores/ui.store';
 
 function makeStore() {
-	let n = 0;
 	return {
-		ui: new UiStore(() => `t-${n++}`)
+		ui: new UiStore()
 	};
 }
 

@@ -45,21 +45,22 @@
 		gap: var(--space-2);
 		height: var(--control-h);
 		padding: 0 var(--space-4);
-		border-radius: var(--radius-sm);
+		border-radius: var(--radius-md);
 		border: 1px solid transparent;
-		font: var(--body-sm-semibold);
+		font: var(--body-sm);
+		font-weight: 600;
 		color: var(--text-primary);
 		cursor: pointer;
 		user-select: none;
 		transition:
-			background-color var(--motion-fast) var(--ease-out),
-			border-color var(--motion-fast) var(--ease-out),
-			transform var(--motion-fast) var(--ease-out),
-			color var(--motion-fast) var(--ease-out),
-			box-shadow var(--motion-fast) var(--ease-out);
+			background-color var(--dur-fast) var(--ease-out),
+			border-color var(--dur-fast) var(--ease-out),
+			transform var(--dur-fast) var(--ease-out),
+			color var(--dur-fast) var(--ease-out),
+			box-shadow var(--dur-fast) var(--ease-out);
 	}
 	.btn:focus-visible {
-		outline: 2px solid var(--focus-ring);
+		outline: solid var(--focus-ring);
 		outline-offset: 1px;
 	}
 	.btn:disabled {
@@ -76,15 +77,16 @@
 	}
 
 	.btn-cta {
-		background: var(--cta-bg);
-		color: var(--text-primary);
-		box-shadow: var(--shadow-cta);
+		background: var(--btn-primary-bg);
+		color: var(--btn-primary-text);
+		height: var(--btn-cta-h);
+		padding: 0 var(--btn-cta-px);
 	}
 	.btn-cta:not(:disabled):hover {
-		background: var(--cta-bg-hover);
+		background: var(--btn-primary-hover);
 	}
-	.btn-cta:disabled {
-		box-shadow: none;
+	.btn-cta:not(:disabled):active {
+		background: var(--btn-primary-active);
 	}
 
 	.btn-primary {
@@ -92,7 +94,10 @@
 		color: var(--btn-primary-text);
 	}
 	.btn-primary:not(:disabled):hover {
-		background: var(--btn-primary-bg-hover);
+		background: var(--btn-primary-hover);
+	}
+	.btn-primary:not(:disabled):active {
+		background: var(--btn-primary-active);
 	}
 
 	.btn-secondary {
@@ -100,8 +105,7 @@
 		border-color: var(--btn-secondary-border);
 	}
 	.btn-secondary:not(:disabled):hover {
-		background: var(--btn-secondary-bg-hover);
-		border-color: var(--btn-secondary-border-hover);
+		background: var(--btn-secondary-hover);
 	}
 
 	.btn-ghost {
@@ -109,26 +113,25 @@
 		color: var(--text-secondary);
 	}
 	.btn-ghost:not(:disabled):hover {
-		background: var(--surface-2);
+		background: var(--btn-ghost-hover);
 		color: var(--text-primary);
 	}
 
 	.btn-danger {
-		background: var(--danger-soft);
-		color: var(--danger);
+		background: var(--btn-danger-bg);
+		color: var(--text-inverse);
 	}
 	.btn-danger:not(:disabled):hover {
-		background: var(--danger);
-		color: var(--text-primary);
+		background: var(--btn-danger-hover);
 	}
 
 	.spinner {
-		width: 14px;
-		height: 14px;
+		width: 16px;
+		height: 16px;
 		border: 1.5px solid currentColor;
 		border-top-color: transparent;
 		border-radius: 50%;
-		animation: spin 0.7s linear infinite;
+		animation: spin 0.8s linear infinite;
 	}
 	@keyframes spin {
 		to {

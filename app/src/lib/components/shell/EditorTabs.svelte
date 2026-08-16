@@ -47,7 +47,7 @@
 					}
 				}}
 			>
-				<Icon name={TYPE_ICON[doc.type]} size={13} />
+				<Icon name={TYPE_ICON[doc.type]} size={20} />
 				<span class="t-label">{doc.title}</span>
 				{#if doc.dirty}
 					<span class="t-dirty" title="Unsaved changes"></span>
@@ -72,7 +72,7 @@
 	.tabs {
 		display: flex;
 		align-items: stretch;
-		height: var(--editor-tab-h);
+		height: var(--chrome-editor-tab);
 		padding: 0 var(--space-2);
 		gap: 2px;
 		background: var(--surface-1);

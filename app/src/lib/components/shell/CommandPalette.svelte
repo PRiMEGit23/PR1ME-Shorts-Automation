@@ -5,7 +5,7 @@
 	 */
 	import Icon, { type IconName } from '$lib/components/primitives/Icon.svelte';
 	import Kbd from '$lib/components/primitives/Kbd.svelte';
-	import SearchField from '$lib/components/primitives/SearchField.svelte';
+	import SearchField from '$lib/components/data/SearchField.svelte';
 	import { fuzzyRank } from '$lib/core/fuzzy';
 	import { WORKBENCHES, type PaletteScope, type UiStore } from '$lib/stores/ui.store';
 	import type { LayoutStore } from '$lib/stores/layout.store';
@@ -255,10 +255,12 @@
 		width: min(600px, 90vw);
 		border-radius: var(--radius-lg);
 		border: 1px solid var(--border-default);
-		background: var(--surface-1);
+		background: var(--surface-glass);
+		backdrop-filter: blur(12px) saturate(1.4);
+		-webkit-backdrop-filter: blur(12px) saturate(1.4);
 		box-shadow: var(--shadow-3);
 		overflow: hidden;
-		animation: open var(--motion-normal) var(--ease-out) both;
+		animation: open 120ms var(--ease-out) both;
 	}
 	@keyframes open {
 		from {
@@ -287,8 +289,7 @@
 		border: none;
 		border-radius: var(--radius-sm);
 		background: transparent;
-		font: var(--body-xs-semibold);
-		letter-spacing: 0.05em;
+		font: var(--label);
 		text-transform: uppercase;
 		color: var(--text-tertiary);
 		cursor: pointer;
@@ -311,7 +312,6 @@
 	.g-label {
 		padding: var(--space-2) var(--space-3) var(--space-1);
 		font: var(--label);
-		letter-spacing: 0.08em;
 		text-transform: uppercase;
 		color: var(--text-tertiary);
 	}
@@ -353,14 +353,15 @@
 		gap: 1px;
 	}
 	.row-title {
-		font: var(--body-sm-semibold);
+		font: var(--body-sm);
+		font-weight: 600;
 		color: var(--text-primary);
 		white-space: nowrap;
 		overflow: hidden;
 		text-overflow: ellipsis;
 	}
 	.row-sub {
-		font: var(--body-xs);
+		font: var(--body-sm);
 		color: var(--text-secondary);
 		white-space: nowrap;
 		overflow: hidden;
@@ -378,7 +379,7 @@
 		justify-content: space-between;
 		padding: var(--space-2) var(--space-4);
 		border-top: 1px solid var(--border-subtle);
-		font-size: 10px;
+		font: var(--mono-xs);
 		color: var(--text-tertiary);
 	}
 	.mono {

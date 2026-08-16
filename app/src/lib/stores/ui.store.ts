@@ -1,7 +1,10 @@
 /**
  * UI store — active workbench, palette, toasts, modals, theme, shortcuts help.
- * Slice of the AppStore (PRODUCT_LAYER §5).
+ * Slice of the AppStore (PRODUCT_LAYER §5). Every slice value is plain
+ * JSON-serializable so devtools can snapshot/debug.
  */
+
+import { uuid } from '$lib/core/id';
 
 export type WorkbenchId =
 	| 'library'
@@ -28,7 +31,6 @@ export interface ToastItem {
 	kind: ToastKind;
 	title: string;
 	message?: string;
-	action?: { label: string; run: () => void };
 	/** auto-dismiss ms; 0 = persists until dismissed (errors) */
 	ttl: number;
 }
@@ -72,8 +74,6 @@ export class UiStore {
 	/** Palette recents (in-memory; persisted per-production in 2S2). */
 	recents: string[] = $state([]);
 
-	constructor(private readonly toastFactory: (item: Omit<ToastItem, 'id'>) => string = defaultToastId) {}
-
 	switchWorkbench(id: WorkbenchId): void {
 		this.workbench = id;
 		this.closePalette();
@@ -98,16 +98,15 @@ export class UiStore {
 	pushToast(
 		kind: ToastKind,
 		title: string,
-		opts: { message?: string; action?: { label: string; run: () => void }; ttl?: number } = {}
+		opts: { message?: string; ttl?: number } = {}
 	): ToastItem {
-		const base: Omit<ToastItem, 'id'> = {
+		const item: ToastItem = {
+			id: uuid(),
 			kind,
 			title,
 			message: opts.message,
-			action: opts.action,
 			ttl: opts.ttl ?? (kind === 'error' ? 0 : 4000)
 		};
-		const item: ToastItem = { ...base, id: this.toastFactory(base) };
 		// max 4 toasts; newest at the bottom of the stack
 		this.toasts = [...this.toasts.slice(-3), item];
 		return item;
@@ -134,8 +133,4 @@ export class UiStore {
 	setBooted(): void {
 		this.booted = true;
 	}
-}
-
-function defaultToastId(item: Omit<ToastItem, 'id'>): string {
-	return `${item.kind}-${crypto.randomUUID()}`;
 }

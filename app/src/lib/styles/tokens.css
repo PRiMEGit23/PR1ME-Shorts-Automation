@@ -108,7 +108,7 @@
 	--numeric: tabular-nums;
 
 	/* ---------- focus / selection / scrollbar / canvas ---------- */
-	--focus-ring: 0 0 0 2px #4c8dff;
+	--focus-ring: 2px #4c8dff;
 	--selection-bg: var(--accent-soft);
 	--selection-color: var(--text-primary);
 	--scrollbar-size: 10px;
@@ -217,4 +217,10 @@
 	/* media */
 	--thumb-radius: var(--radius-md);
 	--queue-card-w: 280px;
+
+	/* ---------- float layers (VDS §33 — scrims solid --overlay) ---------- */
+	--z-popover: 20;
+	--z-palette: 30;
+	--z-toast: 40;
+	--z-modal: 50;
 }

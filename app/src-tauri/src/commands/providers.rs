@@ -31,7 +31,7 @@ fn resolve_on_path(command: &str) -> Option<String> {
 }
 
 #[tauri::command]
-pub fn env_probe(_state: State<'_, AppState>, name: String) -> Result<EnvProbeResult, String> {
+pub async fn env_probe(_state: State<'_, AppState>, name: String) -> Result<EnvProbeResult, String> {
     // Known ambient binaries; the .env may override the location.
     let command = match name.as_str() {
         "ollama" => "ollama",

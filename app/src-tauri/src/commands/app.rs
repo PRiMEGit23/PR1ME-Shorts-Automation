@@ -16,7 +16,7 @@ pub struct AppVersion {
 }
 
 #[tauri::command]
-pub fn app_version(state: State<'_, AppState>) -> Result<AppVersion, String> {
+pub async fn app_version(state: State<'_, AppState>) -> Result<AppVersion, String> {
     let pr1me_version = {
         let mut cache = state
             .pr1me_version

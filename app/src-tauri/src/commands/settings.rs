@@ -10,6 +10,7 @@ use serde::{Deserialize, Serialize};
 use tauri::State;
 
 use crate::AppState;
+use super::OkPayload;
 
 /// Mirror of `src/lib/models/settings.ts` (camelCase via serde rename).
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
@@ -48,7 +49,7 @@ fn serialize_env(env: &BTreeMap<String, String>) -> String {
 }
 
 #[tauri::command]
-pub fn settings_load(state: State<'_, AppState>) -> Result<SettingsModel, String> {
+pub async fn settings_load(state: State<'_, AppState>) -> Result<SettingsModel, String> {
     let root = &state.repo_root;
     let env = match fs::read_to_string(&state.env_file) {
         Ok(text) => parse_env(&text),
@@ -65,8 +66,9 @@ pub fn settings_load(state: State<'_, AppState>) -> Result<SettingsModel, String
 }
 
 #[tauri::command]
-pub fn settings_save(state: State<'_, AppState>, model: SettingsModel) -> Result<(), String> {
-    atomic_write(&state.env_file, serialize_env(&model.env))
+pub async fn settings_save(state: State<'_, AppState>, model: SettingsModel) -> Result<OkPayload, String> {
+    atomic_write(&state.env_file, serialize_env(&model.env))?;
+    Ok(OkPayload { ok: true })
 }
 
 /// Atomic write: tmp file in the same dir, then rename over the target.

@@ -60,7 +60,7 @@
 		inset: 0;
 		background: var(--accent);
 		opacity: 0;
-		transition: opacity var(--motion-fast) var(--ease-out);
+		transition: opacity var(--dur-fast) var(--ease-out);
 	}
 	.handle:hover::after,
 	.handle.active::after {

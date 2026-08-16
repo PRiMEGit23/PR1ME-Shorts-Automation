@@ -1,9 +1,12 @@
 <script lang="ts">
 	/**
 	 * WorkbenchBar — 44px top bar (VDS §30): 8 workbench tabs (UX §2.1)
-	 * with filmstrip perforation underline; Generate CTA + chrome actions.
+	 * with filmstrip perforation underline; Generate CTA + chrome actions
+	 * (VDS §5: ⊕ Generate (primary), ⛁ Connections, ⚙ Preferences).
 	 */
 	import Icon from '$lib/components/primitives/Icon.svelte';
+	import IconButton from '$lib/components/primitives/IconButton.svelte';
+	import Button from '$lib/components/primitives/Button.svelte';
 	import Tooltip from '$lib/components/primitives/Tooltip.svelte';
 	import type { IconName } from '$lib/components/primitives/Icon.svelte';
 	import { WORKBENCHES, type UiStore } from '$lib/stores/ui.store';
@@ -24,7 +27,7 @@
 					layout.setWorkbench(w.id);
 				}}
 			>
-				<span class="wb-tab-icon"><Icon name={w.glyph as IconName} size={17} /></span>
+				<span class="wb-tab-icon"><Icon name={w.glyph as IconName} size={24} /></span>
 				<span class="wb-tab-label">{w.label}</span>
 				{#if ui.workbench === w.id}
 					<span class="wb-tab-underline"></span>
@@ -33,21 +36,13 @@
 		{/each}
 	</div>
 	<div class="wb-actions">
+		<Button variant="cta" icon="generate" onclick={() => ui.openPalette('commands')}>Generate</Button>
 		<Tooltip label="Connections">
-			<button class="wb-action" aria-label="Connections" onclick={() => ui.openPalette('commands')}>
-				<Icon name="connections" size={15} />
-			</button>
+			<IconButton icon="connections" label="Connections" size={28} iconSize={16} onclick={() => ui.openPalette('commands')} />
 		</Tooltip>
 		<Tooltip label="Preferences">
-			<button class="wb-action" aria-label="Preferences" onclick={() => ui.openPalette('commands')}>
-				<Icon name="preferences" size={15} />
-			</button>
+			<IconButton icon="preferences" label="Preferences" size={28} iconSize={16} onclick={() => ui.openPalette('commands')} />
 		</Tooltip>
-		<span class="wb-sep"></span>
-		<button class="wb-cta" onclick={() => ui.openPalette('commands')}>
-			<Icon name="generate" size={15} />
-			<span>Generate</span>
-		</button>
 	</div>
 </nav>
 
@@ -56,9 +51,9 @@
 		display: flex;
 		align-items: center;
 		justify-content: space-between;
-		height: var(--workbenchbar-h);
+		height: var(--chrome-workbench);
 		padding: 0 var(--space-3);
-		background: var(--surface-1);
+		background: var(--surface-0);
 		border-bottom: 1px solid var(--border-subtle);
 		flex-shrink: 0;
 		gap: var(--space-4);
@@ -80,12 +75,13 @@
 		border: none;
 		border-radius: var(--radius-sm);
 		background: transparent;
-		font: var(--body-sm-semibold);
+		font: var(--body-sm);
+		font-weight: 600;
 		color: var(--text-secondary);
 		cursor: pointer;
 		transition:
-			background-color var(--motion-fast) var(--ease-out),
-			color var(--motion-fast) var(--ease-out);
+			background-color var(--dur-fast) var(--ease-out),
+			color var(--dur-fast) var(--ease-out);
 	}
 	.wb-tab:hover {
 		background: var(--surface-2);
@@ -114,44 +110,5 @@
 		align-items: center;
 		gap: var(--space-1);
 		flex-shrink: 0;
-	}
-	.wb-action {
-		display: inline-flex;
-		align-items: center;
-		justify-content: center;
-		width: 28px;
-		height: 28px;
-		border: none;
-		border-radius: var(--radius-sm);
-		background: transparent;
-		color: var(--text-secondary);
-		cursor: pointer;
-	}
-	.wb-action:hover {
-		background: var(--surface-2);
-		color: var(--text-primary);
-	}
-	.wb-sep {
-		width: 1px;
-		height: 18px;
-		background: var(--border-default);
-		margin: 0 var(--space-1);
-	}
-	.wb-cta {
-		display: inline-flex;
-		align-items: center;
-		gap: var(--space-2);
-		height: 28px;
-		padding: 0 var(--space-3);
-		border: none;
-		border-radius: var(--radius-sm);
-		background: var(--cta-bg);
-		color: var(--text-primary);
-		font: var(--body-sm-semibold);
-		box-shadow: var(--shadow-cta);
-		cursor: pointer;
-	}
-	.wb-cta:hover {
-		background: var(--cta-bg-hover);
 	}
 </style>

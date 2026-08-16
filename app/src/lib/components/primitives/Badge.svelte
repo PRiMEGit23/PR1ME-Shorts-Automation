@@ -14,31 +14,30 @@
 		display: inline-flex;
 		align-items: center;
 		gap: var(--space-1);
-		height: 20px;
-		padding: 0 var(--space-2);
-		border-radius: var(--radius-sm);
-		font: var(--body-xs-semibold);
-		letter-spacing: 0.02em;
+		height: var(--badge-h);
+		padding: 0 var(--badge-px);
+		border-radius: var(--badge-radius);
+		font: var(--label);
 		white-space: nowrap;
 	}
 	.badge[data-status='ok'] {
-		background: var(--ok-soft);
-		color: var(--ok);
+		background: var(--status-ok-soft);
+		color: var(--status-ok);
 	}
 	.badge[data-status='warn'] {
-		background: var(--warn-soft);
-		color: var(--warn);
+		background: var(--status-warn-soft);
+		color: var(--status-warn);
 	}
 	.badge[data-status='error'] {
-		background: var(--danger-soft);
-		color: var(--danger);
+		background: var(--status-error-soft);
+		color: var(--status-error);
 	}
 	.badge[data-status='info'] {
-		background: var(--accent-soft);
-		color: var(--accent);
+		background: var(--status-info-soft);
+		color: var(--status-info);
 	}
 	.badge[data-status='muted'] {
-		background: var(--surface-3);
-		color: var(--text-secondary);
+		background: var(--status-muted-soft);
+		color: var(--status-muted);
 	}
 </style>

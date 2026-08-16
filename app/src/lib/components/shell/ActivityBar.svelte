@@ -29,7 +29,7 @@
 				aria-label={t.label}
 				onclick={() => layout.togglePanel(t.id)}
 			>
-				<Icon name={t.glyph} size={19} />
+				<Icon name={t.glyph} size={20} />
 			</button>
 		</Tooltip>
 	{/each}
@@ -40,8 +40,8 @@
 		display: flex;
 		flex-direction: column;
 		align-items: center;
-		gap: var(--space-1);
-		width: var(--activitybar-w);
+		gap: var(--space-3);
+		width: var(--chrome-activity);
 		padding: var(--space-2) 0;
 		background: var(--surface-0);
 		border-right: 1px solid var(--border-subtle);
@@ -60,11 +60,11 @@
 		color: var(--text-tertiary);
 		cursor: pointer;
 		transition:
-			background-color var(--motion-fast) var(--ease-out),
-			color var(--motion-fast) var(--ease-out);
+			background-color var(--dur-fast) var(--ease-out),
+			color var(--dur-fast) var(--ease-out);
 	}
 	.ab-btn:hover {
-		background: var(--surface-2);
+		background: var(--surface-3);
 		color: var(--text-primary);
 	}
 	.ab-btn.active {

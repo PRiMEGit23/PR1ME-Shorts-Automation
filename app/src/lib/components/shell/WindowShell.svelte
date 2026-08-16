@@ -7,16 +7,18 @@
 	import TitleBar from './TitleBar.svelte';
 	import WorkbenchBar from './WorkbenchBar.svelte';
 	import ActivityBar from './ActivityBar.svelte';
-	import DockZone from '$lib/components/layout/DockZone.svelte';
+	import DockZone from '$lib/components/shell/DockZone.svelte';
 	import EditorArea from './EditorArea.svelte';
 	import StatusBar from './StatusBar.svelte';
 	import CommandPalette from './CommandPalette.svelte';
 	import Toast from '$lib/components/primitives/Toast.svelte';
+	import ApertureMark from '$lib/components/primitives/ApertureMark.svelte';
 	import { WORKBENCHES, type UiStore } from '$lib/stores/ui.store';
 	import type { LayoutStore } from '$lib/stores/layout.store';
 	import type { EditorStore } from '$lib/stores/editor.store';
 	import type { AppStore } from '$lib/stores/app.store';
 	import { di } from '$lib/core/di';
+	import { APP_VERSION } from '$lib/core/config';
 	import type { Snippet } from 'svelte';
 
 	let {
@@ -128,21 +130,19 @@
 		<!-- startup screen (M1) -->
 		<div class="startup">
 			<div class="su-mark">
-				<span class="su-aperture"></span>
-				<span class="su-wordmark">
-					<span class="su-p">PR1ME</span>
-					<span class="su-studio">STUDIO</span>
-				</span>
+				<ApertureMark size={48} />
+				<div class="su-wordmark">PR1ME</div>
+				<div class="su-studio">STUDIO</div>
 			</div>
 			<div class="su-tagline">Make the Short.</div>
-			<div class="su-progress mono">
-				<span class="su-fill" style="width: {app.bootPhase ? 50 : 100}%"></span>
+			<div class="su-progress mono" role="status">
+				<span class="su-blocks">████████████░░░░░░░░</span>
+				<span class="su-pct">50%</span>
+				<span class="su-label">loading services</span>
 			</div>
-			<div class="su-phase mono">{app.bootPhase || 'ready'}</div>
 			<div class="su-foot mono">
-				<span>v0.2.1</span>
-				<span>·</span>
-				<span>pr1me {app.version?.version ?? '—'}</span>
+				<span>v{APP_VERSION} · pr1me {app.version?.version ?? '—'}</span>
+				<span class="su-copy">© PR1M3 Labs</span>
 			</div>
 		</div>
 	{:else}
@@ -207,7 +207,7 @@
 	.toasts {
 		position: fixed;
 		right: var(--space-5);
-		bottom: calc(var(--statusbar-h) + var(--space-5));
+		bottom: calc(var(--chrome-status) + var(--space-5));
 		z-index: var(--z-toast);
 		display: flex;
 		flex-direction: column;
@@ -223,7 +223,8 @@
 		justify-content: center;
 		gap: var(--space-4);
 		background: var(--surface-0);
-		animation: fade var(--motion-normal) var(--ease-out) both;
+		box-shadow: inset 0 0 0 1px transparent;
+		animation: fade var(--dur-slow) var(--ease-out) both;
 	}
 	@keyframes fade {
 		from {
@@ -239,44 +240,20 @@
 		align-items: center;
 		gap: var(--space-3);
 	}
-	.su-aperture {
-		width: 56px;
-		height: 56px;
-		border-radius: 50%;
-		border: 2px solid var(--accent);
-		position: relative;
-		box-shadow: var(--glow-accent);
-	}
-	.su-aperture::before,
-	.su-aperture::after {
-		content: '';
-		position: absolute;
-		top: 50%;
-		left: 50%;
-		width: 72px;
-		height: 2px;
-		background: var(--accent);
-		transform-origin: center;
-	}
-	.su-aperture::before {
-		transform: translate(-50%, -50%) rotate(30deg);
-	}
-	.su-aperture::after {
-		transform: translate(-50%, -50%) rotate(-30deg);
-	}
 	.su-wordmark {
-		display: flex;
-		align-items: baseline;
-		gap: var(--space-3);
-	}
-	.su-p {
 		font: var(--display-2xl);
 		letter-spacing: 0.24em;
-		color: var(--text-primary);
+		text-indent: 0.24em;
+		background: var(--accent-gradient);
+		-webkit-background-clip: text;
+		background-clip: text;
+		color: transparent;
 	}
 	.su-studio {
-		font: var(--mono-sm);
-		letter-spacing: 0.4em;
+		font: var(--label);
+		text-transform: uppercase;
+		letter-spacing: 0.3em;
+		text-indent: 0.3em;
 		color: var(--text-tertiary);
 	}
 	.su-tagline {
@@ -284,32 +261,36 @@
 		color: var(--text-secondary);
 	}
 	.su-progress {
-		width: 260px;
-		height: 4px;
-		border-radius: 2px;
-		background: var(--surface-3);
-		overflow: hidden;
+		display: flex;
+		align-items: center;
+		gap: var(--space-3);
 		margin-top: var(--space-3);
+		font: var(--mono-sm);
+		color: var(--text-secondary);
 	}
-	.su-fill {
-		display: block;
-		height: 100%;
-		border-radius: 2px;
-		background: var(--accent);
-		transition: width var(--motion-normal) var(--ease-out);
+	.su-blocks {
+		color: var(--accent);
 	}
-	.su-phase {
-		font-size: 10px;
-		letter-spacing: 0.2em;
+	.su-pct {
+		color: var(--text-primary);
+	}
+	.su-label {
 		text-transform: uppercase;
+		font: var(--label);
 		color: var(--text-tertiary);
 	}
 	.su-foot {
 		position: absolute;
+		left: var(--space-5);
+		right: var(--space-5);
 		bottom: var(--space-5);
 		display: flex;
-		gap: var(--space-3);
-		font-size: 10px;
+		align-items: center;
+		justify-content: space-between;
+		font: var(--mono-xs);
+		color: var(--text-tertiary);
+	}
+	.su-copy {
 		color: var(--text-tertiary);
 	}
 </style>

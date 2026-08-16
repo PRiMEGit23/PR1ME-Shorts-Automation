@@ -19,17 +19,17 @@
 		flex-shrink: 0;
 	}
 	.dot[data-status='ok'] {
-		background: var(--ok);
+		background: var(--status-ok);
 	}
 	.dot[data-status='warn'] {
-		background: var(--warn);
+		background: var(--status-warn);
 	}
 	.dot[data-status='error'] {
-		background: var(--error);
+		background: var(--status-error);
 	}
 	.dot[data-status='info'] {
-		background: var(--info);
-		animation: pulse 1.6s var(--ease-in-out) infinite;
+		background: var(--status-info);
+		animation: pulse var(--dur-pulse) var(--ease-in-out) infinite;
 	}
 	.dot[data-status='unknown'] {
 		background: var(--text-tertiary);

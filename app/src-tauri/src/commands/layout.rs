@@ -10,6 +10,7 @@ use serde::{Deserialize, Serialize};
 use tauri::State;
 
 use crate::AppState;
+use super::OkPayload;
 
 /// Panel ids the docks can host (mirror of `services/layout.service.ts`).
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
@@ -82,11 +83,11 @@ fn read_layouts(path: &std::path::Path) -> LayoutFile {
 }
 
 #[tauri::command]
-pub fn layout_save(
+pub async fn layout_save(
     state: State<'_, AppState>,
     workbench: String,
     layout: LayoutState,
-) -> Result<(), String> {
+) -> Result<OkPayload, String> {
     let mut all = read_layouts(&state.ui_layout_file);
     all.insert(workbench, layout);
 
@@ -103,7 +104,7 @@ pub fn layout_save(
         fs::remove_file(&state.ui_layout_file).map_err(|e| e.to_string())?;
     }
     fs::rename(&tmp, &state.ui_layout_file).map_err(|e| e.to_string())?;
-    Ok(())
+    Ok(OkPayload { ok: true })
 }
 
 #[cfg(test)]

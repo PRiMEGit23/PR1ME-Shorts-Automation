@@ -65,7 +65,6 @@
 	}
 	.ph-title {
 		font: var(--label);
-		letter-spacing: 0.08em;
 		text-transform: uppercase;
 		color: var(--text-secondary);
 		white-space: nowrap;
@@ -77,7 +76,7 @@
 		align-items: center;
 		gap: 2px;
 		opacity: 0;
-		transition: opacity var(--motion-fast) var(--ease-out);
+		transition: opacity var(--dur-fast) var(--ease-out);
 	}
 	.panel-header:hover .ph-actions {
 		opacity: 1;
@@ -93,10 +92,12 @@
 		min-width: 160px;
 		padding: var(--space-1);
 		border-radius: var(--radius-md);
-		border: 1px solid var(--border-default);
-		background: var(--surface-2);
+		border: 1px solid var(--tooltip-border);
+		background: var(--tooltip-bg);
+		backdrop-filter: blur(12px);
+		-webkit-backdrop-filter: blur(12px);
 		box-shadow: var(--shadow-1);
-		animation: pop var(--motion-fast) var(--ease-out) both;
+		animation: pop var(--dur-fast) var(--ease-out) both;
 	}
 	@keyframes pop {
 		from {

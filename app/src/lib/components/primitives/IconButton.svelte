@@ -51,12 +51,12 @@
 		color: var(--text-secondary);
 		cursor: pointer;
 		transition:
-			background-color var(--motion-fast) var(--ease-out),
-			color var(--motion-fast) var(--ease-out),
-			transform var(--motion-fast) var(--ease-out);
+			background-color var(--dur-fast) var(--ease-out),
+			color var(--dur-fast) var(--ease-out),
+			transform var(--dur-fast) var(--ease-out);
 	}
 	.icon-btn:focus-visible {
-		outline: 2px solid var(--focus-ring);
+		outline: solid var(--focus-ring);
 		outline-offset: 1px;
 	}
 	.icon-btn:disabled {
@@ -64,7 +64,7 @@
 		cursor: default;
 	}
 	.icon-btn:not(:disabled):hover {
-		background: var(--surface-3);
+		background: var(--btn-ghost-hover);
 		color: var(--text-primary);
 	}
 	.icon-btn:not(:disabled):active {
@@ -75,7 +75,7 @@
 		color: var(--accent);
 	}
 	.icon-btn.danger:not(:disabled):hover {
-		background: var(--danger-soft);
-		color: var(--danger);
+		background: var(--status-error-soft);
+		color: var(--status-error);
 	}
 </style>

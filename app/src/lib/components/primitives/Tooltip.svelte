@@ -21,21 +21,21 @@
 		left: 50%;
 		bottom: calc(100% + 6px);
 		transform: translateX(-50%) translateY(2px);
-		z-index: var(--z-tooltip);
+		z-index: var(--z-popover);
 		padding: var(--space-1) var(--space-2);
-		border-radius: var(--radius-sm);
-		border: 1px solid var(--border-default);
-		background: var(--glass-bg);
+		border-radius: var(--tooltip-radius);
+		border: 1px solid var(--tooltip-border);
+		background: var(--tooltip-bg);
 		backdrop-filter: blur(12px);
 		-webkit-backdrop-filter: blur(12px);
-		font: var(--body-xs);
+		font: var(--body-sm);
 		color: var(--text-primary);
 		white-space: nowrap;
 		opacity: 0;
 		pointer-events: none;
 		transition:
-			opacity var(--motion-fast) var(--ease-out) 120ms,
-			transform var(--motion-fast) var(--ease-out) 120ms;
+			opacity var(--dur-fast) var(--ease-out) 120ms,
+			transform var(--dur-fast) var(--ease-out) 120ms;
 	}
 	.wrap:hover .tip {
 		opacity: 1;

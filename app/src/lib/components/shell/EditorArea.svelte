@@ -117,7 +117,7 @@
 		min-width: 0;
 		min-height: 0;
 		overflow: auto;
-		padding: var(--space-6) var(--space-8);
+		padding: var(--space-6) var(--space-7);
 		background: var(--surface-0);
 	}
 	.sheet-head {
@@ -131,8 +131,7 @@
 		min-width: 0;
 	}
 	.sheet-kicker {
-		font-size: 10px;
-		letter-spacing: 0.2em;
+		font: var(--label);
 		text-transform: uppercase;
 		color: var(--text-tertiary);
 	}
@@ -158,7 +157,6 @@
 	}
 	.f-label {
 		font: var(--label);
-		letter-spacing: 0.08em;
 		text-transform: uppercase;
 		color: var(--text-secondary);
 	}
@@ -175,8 +173,8 @@
 	}
 	.field input:focus,
 	.field select:focus {
-		border-color: var(--focus-ring);
-		box-shadow: 0 0 0 2px var(--focus-ring-soft);
+		border-color: var(--input-focus-border);
+		box-shadow: var(--ring);
 	}
 	.field input::placeholder {
 		color: var(--text-tertiary);
@@ -192,7 +190,7 @@
 		margin-bottom: var(--space-2);
 	}
 	.sheet-hint {
-		font: var(--body-xs);
+		font: var(--body-sm);
 		color: var(--text-tertiary);
 	}
 	.narration {
@@ -209,8 +207,8 @@
 		outline: none;
 	}
 	.narration:focus {
-		border-color: var(--focus-ring);
-		box-shadow: 0 0 0 2px var(--focus-ring-soft);
+		border-color: var(--input-focus-border);
+		box-shadow: var(--ring);
 	}
 	.narration::placeholder {
 		color: var(--text-tertiary);

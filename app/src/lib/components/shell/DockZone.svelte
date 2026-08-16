@@ -3,10 +3,10 @@
 	 * DockZone — left/right/bottom docks (UX §14): PanelGroup + 4px
 	 * DragHandle resize + collapse to 28px edge tab strip (VDS §39).
 	 */
-	import Panel from './Panel.svelte';
-	import PanelGroup from './PanelGroup.svelte';
-	import DragHandle from './DragHandle.svelte';
-	import EmptyState from './EmptyState.svelte';
+	import Panel from '../layout/Panel.svelte';
+	import PanelGroup from '../layout/PanelGroup.svelte';
+	import DragHandle from '../layout/DragHandle.svelte';
+	import EmptyState from '../layout/EmptyState.svelte';
 	import Icon, { type IconName } from '$lib/components/primitives/Icon.svelte';
 	import Tooltip from '$lib/components/primitives/Tooltip.svelte';
 	import { PANEL_IDS, type LayoutStore, type PanelId } from '$lib/stores/layout.store';
@@ -227,7 +227,8 @@
 		border: none;
 		background: var(--btn-primary-bg);
 		color: var(--btn-primary-text);
-		font: var(--body-sm-semibold);
+		font: var(--body-sm);
+		font-weight: 600;
 		cursor: pointer;
 	}
 	.ps-btn:disabled {

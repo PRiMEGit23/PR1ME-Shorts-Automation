@@ -3,11 +3,14 @@
 	 * TitleBar — 40px custom title bar (VDS §8/§30). data-tauri-drag-region
 	 * on the bar; window controls via Tauri API (browser dev: no-ops).
 	 */
+	import Icon from '$lib/components/primitives/Icon.svelte';
 	import IconButton from '$lib/components/primitives/IconButton.svelte';
+	import ApertureMark from '$lib/components/primitives/ApertureMark.svelte';
 	import Kbd from '$lib/components/primitives/Kbd.svelte';
 	import StatusDot from '$lib/components/primitives/StatusDot.svelte';
 	import Tooltip from '$lib/components/primitives/Tooltip.svelte';
 	import { getCurrentWindow, type Window } from '@tauri-apps/api/window';
+	import { AMBIENT_PROVIDERS, PROVIDERS } from '$lib/models/providers';
 	import type { UiStore } from '$lib/stores/ui.store';
 
 	let { ui }: { ui: UiStore } = $props();
@@ -39,19 +42,12 @@
 	function close() {
 		void win?.close();
 	}
-
-	const PROVIDERS = [
-		{ id: 'ollama', label: 'Ollama — not probed yet' },
-		{ id: 'comfyui', label: 'ComfyUI — not probed yet' },
-		{ id: 'kokoro', label: 'Kokoro — not probed yet' },
-		{ id: 'ffmpeg', label: 'FFmpeg — not probed yet' }
-	];
 </script>
 
 <header class="titlebar" data-tauri-drag-region>
 	<div class="tb-left" data-tauri-drag-region>
 		<span class="tb-logo" title="PR1ME Studio">
-			<span class="tb-logo-icon">1</span>
+			<ApertureMark size={20} />
 			<span class="tb-wordmark">PR1ME</span>
 			<span class="tb-studio">STUDIO</span>
 		</span>
@@ -65,8 +61,8 @@
 
 	<div class="tb-right" data-tauri-drag-region>
 		<div class="tb-providers">
-			{#each PROVIDERS as p (p.id)}
-				<Tooltip label={p.label}>
+			{#each AMBIENT_PROVIDERS as id (id)}
+				<Tooltip label={`${PROVIDERS.find((p) => p.id === id)?.label ?? id} — not probed yet`}>
 					<span class="tb-provider">
 						<StatusDot status="unknown" size={7} />
 					</span>
@@ -74,8 +70,9 @@
 			{/each}
 		</div>
 		<button class="tb-queue" title="Render queue — active runs appear here" disabled>
-			<span class="tb-queue-label">queue</span>
+			<span class="tb-queue-label">(queue</span>
 			<span class="tb-queue-count mono">0</span>
+			<span class="tb-queue-label">)</span>
 		</button>
 		{#if ui.booted}
 			<span class="tb-kbd-hint">
@@ -86,7 +83,9 @@
 			{#if isTauri}
 				<IconButton icon="minimize" label="Minimize" size={34} iconSize={14} onclick={minimize} />
 				<IconButton icon={isMax ? 'restore' : 'maximize'} label={isMax ? 'Restore' : 'Maximize'} size={34} iconSize={14} onclick={toggleMaximize} />
-				<IconButton icon="close" label="Close" size={34} iconSize={14} danger onclick={close} />
+				<button class="tb-close" aria-label="Close" onclick={close}>
+					<Icon name="close" size={14} />
+				</button>
 			{:else}
 				<span class="tb-browser-note mono">browser preview</span>
 			{/if}
@@ -99,7 +98,7 @@
 		display: flex;
 		align-items: center;
 		justify-content: space-between;
-		height: var(--titlebar-h);
+		height: var(--chrome-title);
 		padding: 0 var(--space-2) 0 var(--space-3);
 		background: var(--surface-0);
 		border-bottom: 1px solid var(--border-subtle);
@@ -117,26 +116,15 @@
 		align-items: center;
 		gap: var(--space-2);
 	}
-	.tb-logo-icon {
-		display: inline-flex;
-		align-items: center;
-		justify-content: center;
-		width: 22px;
-		height: 22px;
-		border-radius: var(--radius-sm);
-		background: var(--surface-3);
-		border: 1px solid var(--border-default);
-		font: var(--mono-sm);
-		color: var(--accent);
-	}
 	.tb-wordmark {
-		font: var(--title-sm);
-		letter-spacing: 0.18em;
+		font-size: 20px;
+		font-weight: 600;
+		letter-spacing: 0.12em;
 		color: var(--text-primary);
 	}
 	.tb-studio {
-		font: var(--mono-xs);
-		letter-spacing: 0.3em;
+		font: var(--label);
+		text-transform: uppercase;
 		color: var(--text-tertiary);
 	}
 	.tb-sep {
@@ -160,7 +148,7 @@
 		color: var(--accent);
 	}
 	.tb-prod-caret {
-		font-size: 10px;
+		font: var(--mono-xs);
 		color: var(--text-tertiary);
 	}
 	.tb-providers {
@@ -179,7 +167,7 @@
 	.tb-queue {
 		display: inline-flex;
 		align-items: center;
-		gap: var(--space-2);
+		gap: var(--space-1);
 		height: 26px;
 		padding: 0 var(--space-3);
 		border: 1px solid var(--border-subtle);
@@ -189,7 +177,6 @@
 		color: var(--text-tertiary);
 	}
 	.tb-queue-label {
-		letter-spacing: 0.08em;
 		text-transform: uppercase;
 		color: var(--text-secondary);
 	}
@@ -205,8 +192,27 @@
 		gap: 2px;
 		margin-right: -2px;
 	}
+	.tb-close {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		width: 34px;
+		height: 34px;
+		border: none;
+		border-radius: var(--radius-sm);
+		background: transparent;
+		color: var(--text-secondary);
+		cursor: pointer;
+		transition:
+			background-color var(--dur-fast) var(--ease-out),
+			color var(--dur-fast) var(--ease-out);
+	}
+	.tb-close:hover {
+		background: var(--status-error);
+		color: var(--text-inverse);
+	}
 	.tb-browser-note {
-		font-size: 10px;
+		font: var(--mono-xs);
 		color: var(--text-tertiary);
 		padding: 0 var(--space-2);
 	}

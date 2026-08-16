@@ -13,72 +13,76 @@
 </script>
 
 <div class="host" class:canvas={wb.id === 'storyboard' || wb.id === 'workflow'}>
-	<header class="host-head">
-		<span class="h-title label">{wb.label}</span>
-		<span class="h-sub mono">{wb.purpose}</span>
-	</header>
+	{#key wb.id}
+		<div class="wb-view">
+			<header class="host-head">
+				<span class="h-title label">{wb.label}</span>
+				<span class="h-sub mono">{wb.purpose}</span>
+			</header>
 
-	{#if wb.id === 'library'}
-		<EmptyState
-			icon="library"
-			title="Welcome to PR1ME Studio"
-			subtitle="Create a production to get started — productions own their .env, knowledge base, and run artifacts."
-		>
-			{#snippet children()}
-				<Button variant="cta" icon="plus" title="Production creation arrives with 2S2" disabled>
-					New Production
-				</Button>
-			{/snippet}
-		</EmptyState>
-	{:else if wb.id === 'script'}
-		<EmptyState
-			icon="script"
-			title="Script"
-			subtitle="Pick a topic from the knowledge base (2S3). Press ⌘N to open an empty script document."
-		/>
-	{:else if wb.id === 'storyboard'}
-		<EmptyState
-			icon="storyboard"
-			title="Storyboard"
-			subtitle="Approved candidates will board here after generation (2S4)."
-		/>
-	{:else if wb.id === 'workflow'}
-		<EmptyState
-			icon="workflow"
-			title="Workflow"
-			subtitle="The prompt chain and ComfyUI graph will render here (2S4)."
-		/>
-	{:else if wb.id === 'render'}
-		<EmptyState
-			icon="render"
-			title="Nothing rendering. Queue episodes from Script."
-			subtitle="Render progress streams here live during runs (2S4)."
-		>
-			{#snippet children()}
-				<Button variant="primary" icon="play" title="Run orchestration arrives with 2S4" disabled>
-					Queue Episode
-				</Button>
-			{/snippet}
-		</EmptyState>
-	{:else if wb.id === 'edit'}
-		<EmptyState
-			icon="edit"
-			title="Edit"
-			subtitle="The timeline and player will live here once render outputs exist (2S5)."
-		/>
-	{:else if wb.id === 'deliver'}
-		<EmptyState
-			icon="deliver"
-			title="Deliver"
-			subtitle="Publish targets and metadata review will appear here (2S5)."
-		/>
-	{:else if wb.id === 'insights'}
-		<EmptyState
-			icon="insights"
-			title="Insights"
-			subtitle="Analytics and learning proposals will appear here (2S6)."
-		/>
-	{/if}
+			{#if wb.id === 'library'}
+				<EmptyState
+					icon="library"
+					title="Welcome to PR1ME Studio"
+					subtitle="Create a production to get started — productions own their .env, knowledge base, and run artifacts."
+				>
+					{#snippet children()}
+						<Button variant="secondary" icon="plus" title="Production creation arrives with 2S2" disabled>
+							New Production
+						</Button>
+					{/snippet}
+				</EmptyState>
+			{:else if wb.id === 'script'}
+				<EmptyState
+					icon="script"
+					title="Script"
+					subtitle="Pick a topic from the knowledge base (2S3). Press ⌘N to open an empty script document."
+				/>
+			{:else if wb.id === 'storyboard'}
+				<EmptyState
+					icon="storyboard"
+					title="Storyboard"
+					subtitle="Approved candidates will board here after generation (2S4)."
+				/>
+			{:else if wb.id === 'workflow'}
+				<EmptyState
+					icon="workflow"
+					title="Workflow"
+					subtitle="The prompt chain and ComfyUI graph will render here (2S4)."
+				/>
+			{:else if wb.id === 'render'}
+				<EmptyState
+					icon="render"
+					title="Nothing rendering. Queue episodes from Script."
+					subtitle="Render progress streams here live during runs (2S4)."
+				>
+					{#snippet children()}
+						<Button variant="secondary" icon="play" title="Run orchestration arrives with 2S4" disabled>
+							Queue Episode
+						</Button>
+					{/snippet}
+				</EmptyState>
+			{:else if wb.id === 'edit'}
+				<EmptyState
+					icon="edit"
+					title="Edit"
+					subtitle="The timeline and player will live here once render outputs exist (2S5)."
+				/>
+			{:else if wb.id === 'deliver'}
+				<EmptyState
+					icon="deliver"
+					title="Deliver"
+					subtitle="Publish targets and metadata review will appear here (2S5)."
+				/>
+			{:else if wb.id === 'insights'}
+				<EmptyState
+					icon="insights"
+					title="Insights"
+					subtitle="Analytics and learning proposals will appear here (2S6)."
+				/>
+			{/if}
+		</div>
+	{/key}
 </div>
 
 <style>
@@ -94,7 +98,27 @@
 	}
 	.host.canvas {
 		background-image: var(--canvas-grid);
-		background-size: 24px 24px;
+		background-size: var(--canvas-grid-size) var(--canvas-grid-size);
+	}
+	.wb-view {
+		display: flex;
+		flex-direction: column;
+		flex: 1;
+		min-height: 0;
+		animation: wb-in var(--dur-slow) var(--ease-out) both;
+	}
+	.wb-view .host-head {
+		animation-delay: 30ms;
+	}
+	@keyframes wb-in {
+		from {
+			opacity: 0;
+			transform: translateY(8px);
+		}
+		to {
+			opacity: 1;
+			transform: translateY(0);
+		}
 	}
 	.host-head {
 		display: flex;
@@ -106,12 +130,11 @@
 	}
 	.h-title {
 		font: var(--label);
-		letter-spacing: 0.08em;
 		text-transform: uppercase;
 		color: var(--text-secondary);
 	}
 	.h-sub {
-		font-size: 10px;
+		font: var(--mono-xs);
 		color: var(--text-tertiary);
 	}
 </style>

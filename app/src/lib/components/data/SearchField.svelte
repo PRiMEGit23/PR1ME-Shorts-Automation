@@ -2,7 +2,7 @@
 	/**
 	 * SearchField — 34px search input (VDS §35: input), Esc clears.
 	 */
-	import Icon from './Icon.svelte';
+	import Icon from '$lib/components/primitives/Icon.svelte';
 	import type { HTMLInputAttributes, KeyboardEventHandler } from 'svelte/elements';
 
 	let {
@@ -38,12 +38,12 @@
 		background: var(--input-bg);
 		color: var(--text-tertiary);
 		transition:
-			border-color var(--motion-fast) var(--ease-out),
-			box-shadow var(--motion-fast) var(--ease-out);
+			border-color var(--dur-fast) var(--ease-out),
+			box-shadow var(--dur-fast) var(--ease-out);
 	}
 	.field:focus-within {
-		border-color: var(--focus-ring);
-		box-shadow: 0 0 0 2px var(--focus-ring-soft);
+		border-color: var(--input-focus-border);
+		box-shadow: var(--ring);
 		color: var(--accent);
 	}
 	.field:focus-within input {

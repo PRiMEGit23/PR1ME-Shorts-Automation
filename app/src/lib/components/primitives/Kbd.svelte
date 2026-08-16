@@ -15,7 +15,7 @@
 		height: 18px;
 		min-width: 20px;
 		padding: 0 var(--space-2);
-		border-radius: var(--radius-sm);
+		border-radius: var(--kbd-radius);
 		border: 1px solid var(--kbd-border);
 		background: var(--kbd-bg);
 		font: var(--mono-xs);

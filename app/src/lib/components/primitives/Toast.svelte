@@ -45,7 +45,7 @@
 		{#if item.kind === 'progress'}
 			<span class="spinner" aria-hidden="true"></span>
 		{:else}
-			<Icon name={ICONS[item.kind]} size={14} />
+			<Icon name={ICONS[item.kind]} size={16} />
 		{/if}
 	</span>
 	<div class="t-body">
@@ -54,9 +54,6 @@
 			<div class="t-msg">{item.message}</div>
 		{/if}
 	</div>
-	{#if item.action}
-		<button class="t-action" onclick={item.action.run}>{item.action.label}</button>
-	{/if}
 	<button class="t-close" aria-label="Dismiss notification" onclick={ondismiss}>
 		<Icon name="close" size={12} />
 	</button>
@@ -69,13 +66,13 @@
 		gap: var(--space-3);
 		width: 320px;
 		padding: var(--space-3);
-		border-radius: var(--radius-lg);
-		border: 1px solid var(--border-default);
-		background: var(--glass-bg);
+		border-radius: var(--toast-radius);
+		border: 1px solid var(--toast-border);
+		background: var(--toast-bg);
 		backdrop-filter: blur(12px);
 		-webkit-backdrop-filter: blur(12px);
-		box-shadow: var(--shadow-2);
-		animation: rise var(--motion-normal) var(--ease-out) both;
+		box-shadow: var(--toast-shadow);
+		animation: rise var(--dur-toast) var(--ease-out) both;
 	}
 	@keyframes rise {
 		from {
@@ -97,12 +94,12 @@
 		border-radius: var(--radius-sm);
 	}
 	.toast[data-kind='success'] .t-icon {
-		background: var(--ok-soft);
-		color: var(--ok);
+		background: var(--status-ok-soft);
+		color: var(--status-ok);
 	}
 	.toast[data-kind='error'] .t-icon {
-		background: var(--danger-soft);
-		color: var(--danger);
+		background: var(--status-error-soft);
+		color: var(--status-error);
 	}
 	.toast[data-kind='info'] .t-icon {
 		background: var(--accent-soft);
@@ -113,24 +110,14 @@
 		min-width: 0;
 	}
 	.t-title {
-		font: var(--body-sm-semibold);
+		font: var(--body-md);
+		font-weight: 600;
 		color: var(--text-primary);
 	}
 	.t-msg {
 		margin-top: 2px;
-		font: var(--body-xs);
+		font: var(--body-sm);
 		color: var(--text-secondary);
-	}
-	.t-action {
-		border: none;
-		background: transparent;
-		padding: var(--space-1);
-		font: var(--body-xs-semibold);
-		color: var(--accent);
-		cursor: pointer;
-	}
-	.t-action:hover {
-		text-decoration: underline;
 	}
 	.t-close {
 		display: inline-flex;
@@ -149,12 +136,12 @@
 		color: var(--text-primary);
 	}
 	.spinner {
-		width: 13px;
-		height: 13px;
+		width: 16px;
+		height: 16px;
 		border: 1.5px solid currentColor;
 		border-top-color: transparent;
 		border-radius: 50%;
-		animation: spin 0.7s linear infinite;
+		animation: spin 0.8s linear infinite;
 	}
 	@keyframes spin {
 		to {

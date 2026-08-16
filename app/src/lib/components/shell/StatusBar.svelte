@@ -1,36 +1,30 @@
 <script lang="ts">
 	/**
-	 * StatusBar — 26px bar (VDS §30): version, pr1me probe, queue ETA,
-	 * provider dots, Cmd+K hint.
+	 * StatusBar — 26px bar (VDS §5/§30): version, pr1me probe, queue ETA,
+	 * provider dots (AMBIENT_PROVIDERS), Cmd+K hint.
 	 */
 	import Kbd from '$lib/components/primitives/Kbd.svelte';
 	import StatusDot from '$lib/components/primitives/StatusDot.svelte';
 	import Tooltip from '$lib/components/primitives/Tooltip.svelte';
+	import { AMBIENT_PROVIDERS, PROVIDERS } from '$lib/models/providers';
 	import type { AppStore } from '$lib/stores/app.store';
 
 	let { app }: { app: AppStore } = $props();
-
-	const PROVIDERS = [
-		{ id: 'ollama', label: 'Ollama' },
-		{ id: 'comfyui', label: 'ComfyUI' },
-		{ id: 'kokoro', label: 'Kokoro' },
-		{ id: 'ffmpeg', label: 'FFmpeg' }
-	];
 </script>
 
 <footer class="statusbar">
 	<div class="sb-left">
-		<span class="mono">v{APP_VERSION}</span>
+		<span class="sb-mono">v{APP_VERSION}</span>
 		<span class="sb-sep"></span>
-		<span class="mono">
+		<span class="sb-mono">
 			pr1me {app.version?.version ?? '—'}
 		</span>
 	</div>
 	<div class="sb-right">
-		<span class="mono sb-eta">eta —</span>
+		<span class="sb-mono sb-eta">eta —</span>
 		<div class="sb-providers">
-			{#each PROVIDERS as p (p.id)}
-				<Tooltip label={`${p.label} — not probed yet`} below>
+			{#each AMBIENT_PROVIDERS as id (id)}
+				<Tooltip label={`${PROVIDERS.find((p) => p.id === id)?.label ?? id} — not probed yet`} below>
 					<span class="sb-provider"><StatusDot status="unknown" size={6} /></span>
 				</Tooltip>
 			{/each}
@@ -44,11 +38,10 @@
 		display: flex;
 		align-items: center;
 		justify-content: space-between;
-		height: var(--statusbar-h);
+		height: var(--chrome-status);
 		padding: 0 var(--space-3);
 		background: var(--surface-1);
 		border-top: 1px solid var(--border-subtle);
-		font-size: 11px;
 		color: var(--text-tertiary);
 		flex-shrink: 0;
 		user-select: none;
@@ -58,6 +51,13 @@
 		display: flex;
 		align-items: center;
 		gap: var(--space-3);
+	}
+	.sb-mono {
+		font: var(--mono-xs);
+		color: var(--text-secondary);
+	}
+	.sb-eta {
+		color: var(--text-tertiary);
 	}
 	.sb-sep {
 		width: 1px;
@@ -74,11 +74,6 @@
 	}
 	.sb-kbd {
 		display: inline-flex;
-	}
-	.mono {
-		font-family: var(--font-mono);
-		letter-spacing: 0.02em;
-		color: var(--text-secondary);
 	}
 </style>
 
