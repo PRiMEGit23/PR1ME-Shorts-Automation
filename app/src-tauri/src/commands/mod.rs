@@ -3,6 +3,7 @@
 pub mod app;
 pub mod layout;
 pub mod process;
+pub mod productions;
 pub mod providers;
 pub mod settings;
 

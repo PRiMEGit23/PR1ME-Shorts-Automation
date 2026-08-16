@@ -19,6 +19,9 @@ pub struct AppState {
     pub env_file: PathBuf,
     /// `<repo_root>/config/ui-layout.json` — per-workbench dock layouts.
     pub ui_layout_file: PathBuf,
+    /// `<repo_root>/config/productions/` — one `<slug>/production.json` per
+    /// production (2S2, product-owned, backend-untouched).
+    pub productions_dir: PathBuf,
     /// Cached `pr1me --version` output (probed once at boot).
     pub pr1me_version: Mutex<Option<String>>,
 }
@@ -32,6 +35,7 @@ impl AppState {
         Self {
             env_file: repo_root.join(".env"),
             ui_layout_file: repo_root.join("config").join("ui-layout.json"),
+            productions_dir: repo_root.join("config").join("productions"),
             repo_root,
             pr1me_version: Mutex::new(None),
         }
@@ -52,6 +56,11 @@ pub fn run() {
             commands::settings::settings_save,
             commands::providers::env_probe,
             commands::layout::layout_save,
+            commands::productions::production_list,
+            commands::productions::production_create,
+            commands::productions::production_load,
+            commands::productions::production_save,
+            commands::productions::production_import,
         ])
         .run(tauri::generate_context!())
         .expect("error while running PR1ME Studio");

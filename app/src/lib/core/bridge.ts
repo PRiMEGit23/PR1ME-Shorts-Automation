@@ -14,7 +14,11 @@ import type { BackendWorkflow } from '$lib/models/workflow';
 import type { RenderHistory } from '$lib/models/history';
 import type { QueueSnapshot } from '$lib/models/queue';
 import type { DashboardView } from '$lib/models/dashboard';
-import type { ProjectView } from '$lib/models/projects';
+import type {
+	ProductionCreateArgs,
+	ProductionModel,
+	ProductionSummary
+} from '$lib/models/productions';
 import type { KnowledgeRow, ValidationReport } from '$lib/models/knowledge';
 import type { LayoutState } from '$lib/stores/layout.store';
 import type { WorkbenchId } from '$lib/stores/ui.store';
@@ -106,8 +110,24 @@ export class Bridge {
 		return this.invoke<HealthState[]>('providers_health_all');
 	}
 
-	production_list(): Promise<ProjectView[]> {
-		return this.invoke<ProjectView[]>('production_list');
+	production_list(): Promise<ProductionSummary[]> {
+		return this.invoke<ProductionSummary[]>('production_list');
+	}
+
+	production_create(args: ProductionCreateArgs): Promise<ProductionModel> {
+		return this.invoke<ProductionModel>('production_create', { args });
+	}
+
+	production_load(productionId: string): Promise<ProductionModel> {
+		return this.invoke<ProductionModel>('production_load', { productionId });
+	}
+
+	production_save(model: ProductionModel): Promise<OkPayload> {
+		return this.invoke<OkPayload>('production_save', { model });
+	}
+
+	production_import(name: string): Promise<ProductionModel> {
+		return this.invoke<ProductionModel>('production_import', { name });
 	}
 
 	/* ---------- 2S3: knowledge ---------- */
