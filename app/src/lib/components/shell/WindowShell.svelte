@@ -209,7 +209,7 @@
 					<EditorArea {editor} {ui}>
 						{@render children?.()}
 					</EditorArea>
-					<DockZone side="right" {layout} {ui} />
+					<DockZone side="right" {layout} {ui} {app} />
 				</div>
 				<DockZone side="bottom" {layout} {ui} />
 			</div>

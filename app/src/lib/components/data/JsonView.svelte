@@ -21,11 +21,14 @@
 	let {
 		column,
 		value,
-		onchange
+		onchange,
+		readonly = false
 	}: {
 		column: string;
 		value: string;
 		onchange: (value: string) => void;
+		/** Read-only mode for stage contracts / artifacts (2S4). */
+		readonly?: boolean;
 	} = $props();
 
 	let formatted = $state(false);
@@ -40,6 +43,14 @@
 			return 'error';
 		}
 	});
+
+	async function copy() {
+		try {
+			await navigator.clipboard.writeText(value);
+		} catch {
+			/* clipboard unavailable (non-secure context) */
+		}
+	}
 
 	const minEntries = $derived(MIN_ENTRIES[column] ?? null);
 
@@ -79,21 +90,31 @@
 		</span>
 		<span class="jv-note">{entryNote ?? (status === 'error' ? 'invalid JSON' : status === 'idle' ? 'empty' : 'valid JSON')}</span>
 		<div class="jv-actions">
-			<IconButton
-				icon={formatted ? 'refresh' : 'magic'}
-				label={formatted ? 'Collapse formatting' : 'Format JSON'}
-				size={22}
-				iconSize={12}
-				onclick={format}
-			/>
-			{#if formatted}
+			{#if readonly}
 				<IconButton
-					icon="close"
-					label="Single line"
+					icon="copy"
+					label="Copy JSON"
 					size={22}
 					iconSize={12}
-					onclick={unformat}
+					onclick={copy}
 				/>
+			{:else}
+				<IconButton
+					icon={formatted ? 'refresh' : 'magic'}
+					label={formatted ? 'Collapse formatting' : 'Format JSON'}
+					size={22}
+					iconSize={12}
+					onclick={format}
+				/>
+				{#if formatted}
+					<IconButton
+						icon="close"
+						label="Single line"
+						size={22}
+						iconSize={12}
+						onclick={unformat}
+					/>
+				{/if}
 			{/if}
 		</div>
 	</div>
@@ -105,6 +126,7 @@
 		oninput={(e) => onchange(e.currentTarget.value)}
 		rows="6"
 		aria-label={column}
+		{readonly}
 	></textarea>
 </div>
 

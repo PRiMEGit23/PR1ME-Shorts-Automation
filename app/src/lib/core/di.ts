@@ -9,6 +9,7 @@ import { SettingsService } from '$lib/services/settings.service';
 import { LayoutService } from '$lib/services/layout.service';
 import { ProvidersService } from '$lib/services/providers.service';
 import { KnowledgeService } from '$lib/services/knowledge.service';
+import { StoryboardService } from '$lib/services/storyboard.service';
 
 export interface AppServices {
 	bridge: Bridge;
@@ -17,6 +18,7 @@ export interface AppServices {
 	layout: LayoutService;
 	providers: ProvidersService;
 	knowledge: KnowledgeService;
+	storyboard: StoryboardService;
 }
 
 export function createServices(
@@ -31,7 +33,8 @@ export function createServices(
 		settings: new SettingsService(bridge),
 		layout: new LayoutService(bridge),
 		providers: new ProvidersService(bridge),
-		knowledge: new KnowledgeService(bridge)
+		knowledge: new KnowledgeService(bridge),
+		storyboard: new StoryboardService(bridge)
 	};
 }
 

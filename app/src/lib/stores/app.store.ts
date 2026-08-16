@@ -10,8 +10,12 @@ import { LayoutStore } from '$lib/stores/layout.store';
 import { EditorStore } from '$lib/stores/editor.store';
 import { ProvidersStore } from '$lib/stores/providers.store';
 import { KnowledgeStore } from '$lib/stores/knowledge.store';
+import { StoryboardStore } from '$lib/stores/storyboard.store';
+import { WorkflowStore } from '$lib/stores/workflow.store';
 import { ConnectionsVm } from '$lib/viewmodels/connections.vm';
 import { ScriptVm } from '$lib/viewmodels/script.vm';
+import { StoryboardVm } from '$lib/viewmodels/storyboard.vm';
+import { WorkflowVm } from '$lib/viewmodels/workflow.vm';
 import type { AppVersion } from '$lib/core/bridge';
 
 export interface BootPhase {
@@ -33,8 +37,12 @@ export class AppStore {
 	editor: EditorStore = $state(new EditorStore());
 	providers: ProvidersStore = $state(new ProvidersStore());
 	knowledge: KnowledgeStore = $state(new KnowledgeStore());
+	storyboard: StoryboardStore = $state(new StoryboardStore());
+	workflow: WorkflowStore = $state(new WorkflowStore());
 	connections: ConnectionsVm | null = $state(null);
 	script: ScriptVm | null = $state(null);
+	storyboardVm: StoryboardVm | null = $state(null);
+	workflowVm: WorkflowVm | null = $state(null);
 
 	version: AppVersion | null = $state(null);
 	bootPhase: string = $state('');
@@ -53,8 +61,10 @@ export class AppStore {
 					this.connections = new ConnectionsVm(this.ui, this.settings, this.providers, services);
 					await this.connections.testAll();
 				} else if (phase.id === 'knowledge') {
-					// VM construction only — the gallery loads on first open
+					// VM construction only — workbenches open on first visit
 					this.script = new ScriptVm(this.ui, this.knowledge, services);
+					this.storyboardVm = new StoryboardVm(this.ui, this.knowledge, this.storyboard, services);
+					this.workflowVm = new WorkflowVm(this.ui, this.storyboard, this.workflow, services);
 				}
 			} catch (err) {
 				this.bootError = err instanceof Error ? err.message : String(err);

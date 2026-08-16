@@ -7,6 +7,8 @@
 	import Button from '$lib/components/primitives/Button.svelte';
 	import KnowledgeGallery from '$lib/components/domain/KnowledgeGallery.svelte';
 	import KnowledgeEditor from '$lib/components/domain/KnowledgeEditor.svelte';
+	import StoryboardBoard from '$lib/components/domain/StoryboardBoard.svelte';
+	import WorkflowBoard from '$lib/components/domain/WorkflowBoard.svelte';
 	import { store } from '../main';
 	import { workbenchById } from '$lib/stores/ui.store';
 
@@ -14,12 +16,13 @@
 	const scriptEditorOpen = $derived(
 		wb.id === 'script' && store.knowledge.editor.open && store.script !== null
 	);
+	const immersive = $derived(wb.id === 'storyboard' || wb.id === 'workflow');
 </script>
 
 <div class="host" class:canvas={wb.id === 'storyboard' || wb.id === 'workflow'}>
 	{#key wb.id}
 		<div class="wb-view">
-			{#if !scriptEditorOpen}
+			{#if !scriptEditorOpen && !immersive}
 				<header class="host-head">
 					<span class="h-title label">{wb.label}</span>
 					<span class="h-sub mono">{wb.purpose}</span>
@@ -50,12 +53,16 @@
 					title="Script"
 					subtitle="Pick a topic from the knowledge base (2S3)."
 				/>
+			{:else if wb.id === 'storyboard' && store.storyboardVm}
+				<StoryboardBoard ui={store.ui} store={store.storyboard} vm={store.storyboardVm} />
 			{:else if wb.id === 'storyboard'}
 				<EmptyState
 					icon="storyboard"
 					title="Storyboard"
 					subtitle="Approved candidates will board here after generation (2S4)."
 				/>
+			{:else if wb.id === 'workflow' && store.workflowVm}
+				<WorkflowBoard store={store.workflow} vm={store.workflowVm} />
 			{:else if wb.id === 'workflow'}
 				<EmptyState
 					icon="workflow"

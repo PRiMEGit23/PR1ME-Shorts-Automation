@@ -75,6 +75,10 @@ pub fn run() {
             commands::csv::csv_read,
             commands::csv::csv_write,
             commands::csv::csv_validate,
+            commands::runs::load_storyboard,
+            commands::runs::load_workflow,
+            commands::runs::load_prompt_chain,
+            commands::runs::export_workflow,
         ])
         .run(tauri::generate_context!())
         .expect("error while running PR1ME Studio");

@@ -9,20 +9,26 @@
 	import EmptyState from '../layout/EmptyState.svelte';
 	import Icon, { type IconName } from '$lib/components/primitives/Icon.svelte';
 	import Tooltip from '$lib/components/primitives/Tooltip.svelte';
+	import StoryboardInspector from '$lib/components/domain/StoryboardInspector.svelte';
+	import WorkflowInspector from '$lib/components/domain/WorkflowInspector.svelte';
 	import { PANEL_IDS, type LayoutStore, type PanelId } from '$lib/stores/layout.store';
 	import { PANEL_DEFAULT_ZONE } from '$lib/services/layout.service';
 	import type { UiStore } from '$lib/stores/ui.store';
+	import type { AppStore } from '$lib/stores/app.store';
 
 	type Side = 'left' | 'right' | 'bottom';
 
 	let {
 		side,
 		layout,
-		ui
+		ui,
+		app = null
 	}: {
 		side: Side;
 		layout: LayoutStore;
 		ui: UiStore;
+		/** Contextual inspectors for the storyboard/workflow workbenches (2S4). */
+		app?: AppStore | null;
 	} = $props();
 
 	const PANEL_TITLES: Record<PanelId, string> = {
@@ -70,11 +76,33 @@
 			subtitle="Render outputs and uploaded assets will land here."
 		/>
 	{:else if panel === 'inspector'}
-		<EmptyState
-			icon="inspector"
-			title="Nothing selected"
-			subtitle="Select an item anywhere to inspect it here."
-		/>
+		{#if app && ui.workbench === 'storyboard'}
+			{#if app.storyboard.selectedScene}
+				<StoryboardInspector view={app.storyboard.selectedScene} workflow={app.workflow.workflow} />
+			{:else}
+				<EmptyState
+					icon="inspector"
+					title="No scenes loaded"
+					subtitle="Open the Storyboard workbench — scenes board after generation."
+				/>
+			{/if}
+		{:else if app && ui.workbench === 'workflow'}
+			{#if app.workflow.storyboardViews.length > 0}
+				<WorkflowInspector store={app.workflow} storyboard={app.storyboard} />
+			{:else}
+				<EmptyState
+					icon="inspector"
+					title="No workflow loaded"
+					subtitle="Open the Workflow workbench — the prompt chain boards here."
+				/>
+			{/if}
+		{:else}
+			<EmptyState
+				icon="inspector"
+				title="Nothing selected"
+				subtitle="Select an item anywhere to inspect it here."
+			/>
+		{/if}
 	{:else if panel === 'timeline'}
 		<EmptyState
 			icon="timeline"

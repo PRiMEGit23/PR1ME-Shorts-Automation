@@ -12,6 +12,7 @@ import type { RunManifest, RunSummary, ExecutionReport } from '$lib/models/run';
 import type { PipelineEvent } from '$lib/models/events';
 import type { BackendWorkflow } from '$lib/models/workflow';
 import type { RenderHistory } from '$lib/models/history';
+import type { StoryboardBundle, PromptChainBundle } from '$lib/models/storyboard';
 import type { QueueSnapshot } from '$lib/models/queue';
 import type { DashboardView } from '$lib/models/dashboard';
 import type {
@@ -170,6 +171,26 @@ export class Bridge {
 	}
 
 	/* ---------- 2S4: generate & runs ---------- */
+
+	/** Storyboard bundle (manifest + report + scenes). Latest run when `runId` is omitted. */
+	load_storyboard(runId?: string): Promise<StoryboardBundle> {
+		return this.invoke<StoryboardBundle>('load_storyboard', runId ? { runId } : {});
+	}
+
+	/** ComfyUI workflow for one scene (`workflow/<scene_id>.json`). */
+	load_workflow(runId: string, sceneId: string): Promise<BackendWorkflow> {
+		return this.invoke<BackendWorkflow>('load_workflow', { runId, sceneId });
+	}
+
+	/** 15-stage prompt chain with report statuses + stage contracts. */
+	load_prompt_chain(runId?: string): Promise<PromptChainBundle> {
+		return this.invoke<PromptChainBundle>('load_prompt_chain', runId ? { runId } : {});
+	}
+
+	/** Export one scene's workflow JSON to a user-picked path. */
+	export_workflow(runId: string, sceneId: string, path: string): Promise<OkPayload> {
+		return this.invoke<OkPayload>('export_workflow', { runId, sceneId, path });
+	}
 
 	run_list(): Promise<RunSummary[]> {
 		return this.invoke<RunSummary[]>('run_list');

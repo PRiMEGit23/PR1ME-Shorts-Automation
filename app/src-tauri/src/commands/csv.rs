@@ -11,7 +11,6 @@
 //! testable without a Tauri runtime (same pattern as settings/productions).
 
 use std::fs;
-use std::io::Write;
 use std::path::{Component, Path, PathBuf};
 use std::process::Command;
 use std::sync::Mutex;
@@ -173,28 +172,7 @@ fn serialize_csv(header: &[String], rows: &[Vec<String>]) -> String {
 /// The caller holds the app-wide `csv_lock` — exclusive lock (§9).
 fn write_csv_atomic(lock: &Mutex<()>, path: &Path, text: &str) -> Result<(), String> {
     let _guard = lock.lock().map_err(|e| format!("csv_lock poisoned: {e}"))?;
-    let parent = path
-        .parent()
-        .ok_or_else(|| format!("csv_write: no parent for {}", path.display()))?;
-    fs::create_dir_all(parent).map_err(|e| format!("csv_write: mkdir {parent:?}: {e}"))?;
-    let tmp = parent.join(format!(
-        ".{}.{}.tmp",
-        path.file_name()
-            .map(|f| f.to_string_lossy().to_string())
-            .unwrap_or_else(|| "csv".to_string()),
-        std::process::id()
-    ));
-    {
-        let mut f = fs::File::create(&tmp).map_err(|e| format!("csv_write: create tmp: {e}"))?;
-        f.write_all(text.as_bytes())
-            .map_err(|e| format!("csv_write: write tmp: {e}"))?;
-        f.sync_all().map_err(|e| format!("csv_write: sync tmp: {e}"))?;
-    }
-    if cfg!(windows) && path.exists() {
-        fs::remove_file(path).map_err(|e| format!("csv_write: replace existing: {e}"))?;
-    }
-    fs::rename(&tmp, path).map_err(|e| format!("csv_write: rename: {e}"))?;
-    Ok(())
+    super::write_bytes_atomic(path, text.as_bytes(), "csv_write")
 }
 
 /// Path guard: KB manager operates on `assets/` only (BACKEND §10).
