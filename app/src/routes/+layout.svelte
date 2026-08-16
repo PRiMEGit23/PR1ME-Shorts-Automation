@@ -20,6 +20,8 @@
 	app={store}
 	providers={store.providers}
 	connections={store.connections}
+	knowledge={store.knowledge}
+	script={store.script}
 >
 	{@render children?.()}
 </WindowShell>

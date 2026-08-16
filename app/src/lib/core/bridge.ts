@@ -19,7 +19,7 @@ import type {
 	ProductionModel,
 	ProductionSummary
 } from '$lib/models/productions';
-import type { KnowledgeRow, ValidationReport } from '$lib/models/knowledge';
+import type { CsvPage, KnowledgeRow, ValidationReport } from '$lib/models/knowledge';
 import type { LayoutState } from '$lib/stores/layout.store';
 import type { WorkbenchId } from '$lib/stores/ui.store';
 
@@ -132,8 +132,33 @@ export class Bridge {
 
 	/* ---------- 2S3: knowledge ---------- */
 
-	csv_read(path: string, offset: number, limit: number): Promise<{ header: string[]; rows: string[][]; total: number }> {
-		return this.invoke('csv_read', { path, offset, limit });
+	load_csv(path: string, offset: number, limit: number): Promise<CsvPage> {
+		return this.invoke<CsvPage>('load_csv', { path, offset, limit });
+	}
+
+	save_csv(path: string, header: string[], rows: string[][]): Promise<OkPayload> {
+		return this.invoke<OkPayload>('save_csv', { path, header, rows });
+	}
+
+	validate_csv(path: string): Promise<ValidationReport> {
+		return this.invoke<ValidationReport>('validate_csv', { path });
+	}
+
+	import_csv(path: string): Promise<CsvPage> {
+		return this.invoke<CsvPage>('import_csv', { path });
+	}
+
+	export_csv(path: string, header: string[], rows: string[][]): Promise<OkPayload> {
+		return this.invoke<OkPayload>('export_csv', { path, header, rows });
+	}
+
+	search_csv(path: string, query: string, offset: number, limit: number): Promise<CsvPage> {
+		return this.invoke<CsvPage>('search_csv', { path, query, offset, limit });
+	}
+
+	/** PRODUCT_LAYER §6 aliases (locked contract) — same helpers as above. */
+	csv_read(path: string, offset: number, limit: number): Promise<CsvPage> {
+		return this.invoke<CsvPage>('csv_read', { path, offset, limit });
 	}
 
 	csv_write(path: string, header: string[], rows: string[][]): Promise<OkPayload> {

@@ -1,77 +1,169 @@
 /**
- * Knowledge Base models — mirror of `assets/knowledge_base.csv` (39 columns)
- * and the validator report. Contract: BACKEND_ARCHITECTURE §7.
+ * Knowledge Base models — mirror of `assets/knowledge_base.csv` +
+ * `assets/topics.csv` (39-column schema, `knowledge/schema.py` COLUMNS).
+ * Contract: BACKEND_ARCHITECTURE §7, PRODUCT_LAYER_ARCHITECTURE §6.
  */
 
-export interface KnowledgeRow {
-	topic: string;
-	difficulty: 'B' | 'I' | 'A';
-	category: string;
-	subcategory: string;
-	keywords: string;
-	search_intent: string;
-	viewer_level: 'B' | 'I' | 'A';
-	core_question: string;
-	learning_objective: string;
-	engineering_summary: string;
-	real_world_application: string;
-	common_misconceptions: string;
-	teaching_strategy: string;
-	script: string;
-	scene_count: string;
-	scene_plan_json: string;
-	visual_spec_json: string;
-	thumbnail_visual_spec: string;
-	thumbnail_prompt: string;
-	thumbnail_negative_prompt: string;
-	image_prompt_pack_json: string;
-	negative_prompt: string;
-	camera_language: string;
-	lighting_style: string;
-	color_palette: string;
-	composition_style: string;
-	render_style: string;
-	materials: string;
-	environment: string;
-	motion_plan: string;
-	animation_notes: string;
-	text_overlay: string;
-	title: string;
-	title_variations_json: string;
-	description: string;
-	hashtags: string;
-	seo_keywords_json: string;
-	references_json: string;
-	fact_check_notes: string;
+/** The 39 columns of `assets/knowledge_base.csv` (BACKEND §7.1, exact order). */
+export const KNOWLEDGE_COLUMNS = [
+	'topic',
+	'difficulty',
+	'category',
+	'subcategory',
+	'keywords',
+	'search_intent',
+	'viewer_level',
+	'core_question',
+	'learning_objective',
+	'engineering_summary',
+	'real_world_application',
+	'common_misconceptions',
+	'teaching_strategy',
+	'script',
+	'scene_count',
+	'scene_plan_json',
+	'visual_spec_json',
+	'thumbnail_visual_spec',
+	'thumbnail_prompt',
+	'thumbnail_negative_prompt',
+	'image_prompt_pack_json',
+	'negative_prompt',
+	'camera_language',
+	'lighting_style',
+	'color_palette',
+	'composition_style',
+	'render_style',
+	'materials',
+	'environment',
+	'motion_plan',
+	'animation_notes',
+	'text_overlay',
+	'title',
+	'title_variations_json',
+	'description',
+	'hashtags',
+	'seo_keywords_json',
+	'references_json',
+	'fact_check_notes'
+] as const;
+
+export type KnowledgeColumn = (typeof KNOWLEDGE_COLUMNS)[number];
+
+/** Columns holding JSON documents (validated by the Python validator). */
+export const JSON_COLUMNS: readonly string[] = [
+	'common_misconceptions',
+	'scene_plan_json',
+	'visual_spec_json',
+	'thumbnail_visual_spec',
+	'image_prompt_pack_json',
+	'materials',
+	'text_overlay',
+	'title_variations_json',
+	'hashtags',
+	'seo_keywords_json',
+	'references_json',
+	'fact_check_notes'
+];
+
+/** The 6 columns of `assets/topics.csv` (BACKEND §7.3 — read-only). */
+export const TOPICS_COLUMNS = [
+	'topic',
+	'difficulty',
+	'category',
+	'subcategory',
+	'keywords',
+	'search_intent'
+] as const;
+
+export type ViewerLevel = 'B' | 'I' | 'A';
+
+/** Editor grouping of the 39 fields (IMPLEMENTATION_PLAN 2S3). */
+export const KNOWLEDGE_GROUPS: { name: string; columns: readonly string[] }[] = [
+	{
+		name: 'Identity',
+		columns: [
+			'topic',
+			'difficulty',
+			'category',
+			'subcategory',
+			'keywords',
+			'search_intent',
+			'viewer_level'
+		]
+	},
+	{
+		name: 'Learning',
+		columns: [
+			'core_question',
+			'learning_objective',
+			'engineering_summary',
+			'real_world_application',
+			'common_misconceptions',
+			'teaching_strategy'
+		]
+	},
+	{
+		name: 'Script',
+		columns: ['script', 'scene_count', 'scene_plan_json']
+	},
+	{
+		name: 'Visual',
+		columns: [
+			'visual_spec_json',
+			'thumbnail_visual_spec',
+			'thumbnail_prompt',
+			'thumbnail_negative_prompt',
+			'image_prompt_pack_json',
+			'negative_prompt',
+			'camera_language',
+			'lighting_style',
+			'color_palette',
+			'composition_style',
+			'render_style',
+			'materials',
+			'environment',
+			'motion_plan',
+			'animation_notes'
+		]
+	},
+	{
+		name: 'Publishing',
+		columns: ['text_overlay', 'title', 'title_variations_json', 'description', 'hashtags']
+	},
+	{
+		name: 'Research',
+		columns: ['seo_keywords_json', 'references_json', 'fact_check_notes']
+	}
+];
+
+/** One knowledge row keyed by column name (all strings, CSV truth). */
+export type KnowledgeRow = Record<string, string>;
+
+/** One paged slice of a CSV file (csv_read/csv_validate contract). */
+export interface CsvPage {
+	header: string[];
+	rows: string[][];
+	total: number;
 }
 
-export type KnowledgeRowKey = Pick<KnowledgeRow, 'topic' | 'difficulty' | 'category'>;
-
+/** A single validation issue (row is 1-based; column = header name). */
 export interface ValidationIssue {
 	row: number;
-	level: 'error' | 'warning';
+	column: string;
+	code: string;
 	message: string;
-	column?: string | null;
 }
 
+/** JSON report emitted by `validate_knowledge_csv.py`. */
 export interface ValidationReport {
 	valid: boolean;
+	checkedAt: string;
 	errors: ValidationIssue[];
 	warnings: ValidationIssue[];
-	total_rows: number;
 }
 
-export const CATEGORY_TAXONOMY: Record<string, string> = {
-	slicer: 'Slicer & Print Settings',
-	materials: 'Materials & Filament',
-	hardware: 'Printer Hardware',
-	troubleshooting: 'Calibration & Troubleshooting',
-	design: 'Design for 3D Printing',
-	finishing: 'Post-Processing & Finishing',
-	industrial_am: 'Advanced & Industrial AM',
-	mechanical: 'Mechanical Engineering',
-	physics: 'Physics of Engineering',
-	manufacturing: 'Manufacturing Processes',
-	electronics: 'Electronics & Motors',
-	tools: 'Tools, Measurement & Practice'
-};
+/** Validation errors keyed by data row index (0-based) for inline display. */
+export type RowIssues = Map<number, { code: string; column: string; message: string }[]>;
+
+/** Which table the Script Workbench is browsing. */
+export type KnowledgeSource = 'knowledge' | 'topics';

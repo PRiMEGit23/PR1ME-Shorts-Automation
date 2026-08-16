@@ -37,6 +37,16 @@ export interface ToastItem {
 
 export type ModalKind = 'none' | 'preferences' | 'connections' | 'confirm';
 
+/** Confirm dialog request (VDS §935). `resolve(true)` = confirmed. */
+export interface ConfirmRequest {
+	title: string;
+	message: string;
+	confirmLabel: string;
+	cancelLabel: string;
+	danger: boolean;
+	resolve: (ok: boolean) => void;
+}
+
 /** Workbench registry (UX_ARCHITECTURE §2.1 — the ONLY top-level destinations). */
 export interface WorkbenchDef {
 	id: WorkbenchId;
@@ -67,6 +77,7 @@ export class UiStore {
 	palette: PaletteState = $state({ ...DEFAULT_PALETTE });
 	toasts: ToastItem[] = $state([]);
 	modal: ModalKind = $state('none');
+	confirm: ConfirmRequest | null = $state(null);
 	theme: 'dark' = $state('dark');
 	booted: boolean = $state(false);
 	shortcutsHelpOpen: boolean = $state(false);
@@ -124,6 +135,36 @@ export class UiStore {
 
 	closeModal(): void {
 		this.modal = 'none';
+	}
+
+	/** Promise-based confirm (rendered by WindowShell's ConfirmDialog). */
+	askConfirm(opts: {
+		title: string;
+		message?: string;
+		confirmLabel?: string;
+		cancelLabel?: string;
+		danger?: boolean;
+	}): Promise<boolean> {
+		return new Promise((resolve) => {
+			this.modal = 'confirm';
+			this.confirm = {
+				title: opts.title,
+				message: opts.message ?? '',
+				confirmLabel: opts.confirmLabel ?? 'Confirm',
+				cancelLabel: opts.cancelLabel ?? 'Cancel',
+				danger: opts.danger ?? false,
+				resolve: (ok) => {
+					this.confirm = null;
+					this.modal = 'none';
+					resolve(ok);
+				}
+			};
+		});
+	}
+
+	/** Resolve the pending confirm (called by ConfirmDialog). */
+	resolveConfirm(ok: boolean): void {
+		this.confirm?.resolve(ok);
 	}
 
 	toggleShortcutsHelp(): void {

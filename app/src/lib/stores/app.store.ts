@@ -9,7 +9,9 @@ import { SettingsStore } from '$lib/stores/settings.store';
 import { LayoutStore } from '$lib/stores/layout.store';
 import { EditorStore } from '$lib/stores/editor.store';
 import { ProvidersStore } from '$lib/stores/providers.store';
+import { KnowledgeStore } from '$lib/stores/knowledge.store';
 import { ConnectionsVm } from '$lib/viewmodels/connections.vm';
+import { ScriptVm } from '$lib/viewmodels/script.vm';
 import type { AppVersion } from '$lib/core/bridge';
 
 export interface BootPhase {
@@ -20,7 +22,8 @@ export interface BootPhase {
 const BOOT_PHASES: { id: string; label: string }[] = [
 	{ id: 'settings', label: 'loading settings' },
 	{ id: 'version', label: 'probing pr1me' },
-	{ id: 'providers', label: 'probing providers' }
+	{ id: 'providers', label: 'probing providers' },
+	{ id: 'knowledge', label: 'preparing knowledge base' }
 ];
 
 export class AppStore {
@@ -29,7 +32,9 @@ export class AppStore {
 	layout: LayoutStore = $state(new LayoutStore());
 	editor: EditorStore = $state(new EditorStore());
 	providers: ProvidersStore = $state(new ProvidersStore());
+	knowledge: KnowledgeStore = $state(new KnowledgeStore());
 	connections: ConnectionsVm | null = $state(null);
+	script: ScriptVm | null = $state(null);
 
 	version: AppVersion | null = $state(null);
 	bootPhase: string = $state('');
@@ -47,6 +52,9 @@ export class AppStore {
 				} else if (phase.id === 'providers') {
 					this.connections = new ConnectionsVm(this.ui, this.settings, this.providers, services);
 					await this.connections.testAll();
+				} else if (phase.id === 'knowledge') {
+					// VM construction only — the gallery loads on first open
+					this.script = new ScriptVm(this.ui, this.knowledge, services);
 				}
 			} catch (err) {
 				this.bootError = err instanceof Error ? err.message : String(err);

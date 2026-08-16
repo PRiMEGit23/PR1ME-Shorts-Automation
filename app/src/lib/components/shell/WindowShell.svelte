@@ -12,6 +12,7 @@
 	import StatusBar from './StatusBar.svelte';
 	import CommandPalette from './CommandPalette.svelte';
 	import ConnectionCenter from './ConnectionCenter.svelte';
+	import ConfirmDialog from './ConfirmDialog.svelte';
 	import Toast from '$lib/components/primitives/Toast.svelte';
 	import ApertureMark from '$lib/components/primitives/ApertureMark.svelte';
 	import { WORKBENCHES, type UiStore } from '$lib/stores/ui.store';
@@ -19,7 +20,9 @@
 	import type { EditorStore } from '$lib/stores/editor.store';
 	import type { AppStore } from '$lib/stores/app.store';
 	import type { ProvidersStore } from '$lib/stores/providers.store';
+	import type { KnowledgeStore } from '$lib/stores/knowledge.store';
 	import type { ConnectionsVm } from '$lib/viewmodels/connections.vm';
+	import type { ScriptVm } from '$lib/viewmodels/script.vm';
 	import { di } from '$lib/core/di';
 	import { APP_VERSION } from '$lib/core/config';
 	import type { Snippet } from 'svelte';
@@ -31,6 +34,8 @@
 		app,
 		providers,
 		connections,
+		knowledge,
+		script,
 		children
 	}: {
 		ui: UiStore;
@@ -39,6 +44,8 @@
 		app: AppStore;
 		providers: ProvidersStore;
 		connections: ConnectionsVm | null;
+		knowledge: KnowledgeStore;
+		script: ScriptVm | null;
 		children?: Snippet;
 	} = $props();
 
@@ -110,6 +117,34 @@
 			}
 			return;
 		}
+		// Script workbench (2S3): Cmd/Ctrl+S save KB, Cmd/Ctrl+E open editor,
+		// Cmd/Ctrl+D duplicate row, Cmd/Ctrl+F focus search
+		if (isMod(e) && !e.shiftKey && e.key === 's' && ui.workbench === 'script' && script) {
+			e.preventDefault();
+			if (knowledge.editor.open) {
+				void script.commitAndSave();
+			} else {
+				void script.save();
+			}
+			return;
+		}
+		if (isMod(e) && e.key === 'e' && ui.workbench === 'script' && script) {
+			e.preventDefault();
+			const index = knowledge.selected ?? 0;
+			if (index >= 0 && index < knowledge.allRows.length) knowledge.openEditor(index);
+			return;
+		}
+		if (isMod(e) && e.key === 'd' && ui.workbench === 'script' && knowledge.editor.open) {
+			e.preventDefault();
+			const index = knowledge.editor.rowIndex ?? 0;
+			if (index < knowledge.allRows.length) knowledge.duplicateRow(index);
+			return;
+		}
+		if (isMod(e) && e.key === 'f' && ui.workbench === 'script') {
+			e.preventDefault();
+			document.getElementById('kb-search')?.focus();
+			return;
+		}
 		// save: document (or layout when no document)
 		if (isMod(e) && e.key === 's') {
 			e.preventDefault();
@@ -123,10 +158,12 @@
 			}
 			return;
 		}
-		// Escape — dismiss palette or modal (UX §15)
+		// Escape — dismiss palette, confirm dialog or modal (UX §15)
 		if (e.key === 'Escape') {
 			if (ui.palette.open) {
 				ui.closePalette();
+			} else if (ui.confirm) {
+				ui.resolveConfirm(false);
 			} else if (ui.modal !== 'none') {
 				ui.closeModal();
 			}
@@ -186,6 +223,10 @@
 
 	{#if ui.modal === 'connections' && connections}
 		<ConnectionCenter ui={ui} store={providers} vm={connections} />
+	{/if}
+
+	{#if ui.confirm}
+		<ConfirmDialog confirm={ui.confirm} onResolve={(ok) => ui.resolveConfirm(ok)} />
 	{/if}
 
 	<div class="toasts">

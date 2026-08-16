@@ -22,6 +22,8 @@ pub struct AppState {
     /// `<repo_root>/config/productions/` — one `<slug>/production.json` per
     /// production (2S2, product-owned, backend-untouched).
     pub productions_dir: PathBuf,
+    /// Exclusive CSV write lock (PRODUCT_LAYER §9 — atomic tmp+rename).
+    pub csv_lock: Mutex<()>,
     /// Cached `pr1me --version` output (probed once at boot).
     pub pr1me_version: Mutex<Option<String>>,
 }
@@ -36,6 +38,7 @@ impl AppState {
             env_file: repo_root.join(".env"),
             ui_layout_file: repo_root.join("config").join("ui-layout.json"),
             productions_dir: repo_root.join("config").join("productions"),
+            csv_lock: Mutex::new(()),
             repo_root,
             pr1me_version: Mutex::new(None),
         }
@@ -63,6 +66,15 @@ pub fn run() {
             commands::productions::production_load,
             commands::productions::production_save,
             commands::productions::production_import,
+            commands::csv::load_csv,
+            commands::csv::save_csv,
+            commands::csv::validate_csv,
+            commands::csv::import_csv,
+            commands::csv::export_csv,
+            commands::csv::search_csv,
+            commands::csv::csv_read,
+            commands::csv::csv_write,
+            commands::csv::csv_validate,
         ])
         .run(tauri::generate_context!())
         .expect("error while running PR1ME Studio");

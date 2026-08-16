@@ -5,20 +5,26 @@
 	 */
 	import EmptyState from '$lib/components/layout/EmptyState.svelte';
 	import Button from '$lib/components/primitives/Button.svelte';
-	import Icon from '$lib/components/primitives/Icon.svelte';
+	import KnowledgeGallery from '$lib/components/domain/KnowledgeGallery.svelte';
+	import KnowledgeEditor from '$lib/components/domain/KnowledgeEditor.svelte';
 	import { store } from '../main';
 	import { workbenchById } from '$lib/stores/ui.store';
 
 	const wb = $derived(workbenchById(store.ui.workbench));
+	const scriptEditorOpen = $derived(
+		wb.id === 'script' && store.knowledge.editor.open && store.script !== null
+	);
 </script>
 
 <div class="host" class:canvas={wb.id === 'storyboard' || wb.id === 'workflow'}>
 	{#key wb.id}
 		<div class="wb-view">
-			<header class="host-head">
-				<span class="h-title label">{wb.label}</span>
-				<span class="h-sub mono">{wb.purpose}</span>
-			</header>
+			{#if !scriptEditorOpen}
+				<header class="host-head">
+					<span class="h-title label">{wb.label}</span>
+					<span class="h-sub mono">{wb.purpose}</span>
+				</header>
+			{/if}
 
 			{#if wb.id === 'library'}
 				<EmptyState
@@ -32,11 +38,17 @@
 						</Button>
 					{/snippet}
 				</EmptyState>
+			{:else if wb.id === 'script' && store.script}
+				{#if scriptEditorOpen}
+					<KnowledgeEditor ui={store.ui} store={store.knowledge} vm={store.script} />
+				{:else}
+					<KnowledgeGallery ui={store.ui} store={store.knowledge} vm={store.script} />
+				{/if}
 			{:else if wb.id === 'script'}
 				<EmptyState
 					icon="script"
 					title="Script"
-					subtitle="Pick a topic from the knowledge base (2S3). Press ⌘N to open an empty script document."
+					subtitle="Pick a topic from the knowledge base (2S3)."
 				/>
 			{:else if wb.id === 'storyboard'}
 				<EmptyState
