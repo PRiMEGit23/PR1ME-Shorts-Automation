@@ -18,18 +18,19 @@ import type {
 	DashboardStats,
 	ActiveRun,
 } from '$lib/models/render';
-import { UiStore, pushToast } from '$lib/stores/ui.store';
+import { UiStore } from '$lib/stores/ui.store';
 import { queueStore } from '$lib/stores/queue.store';
 import { dashboardStore } from '$lib/stores/dashboard.store';
 
 export class RenderVm {
-	public mode = 'board' as 'board' | 'dashboard' | 'history';
-	public selectedRunId: string | null = null;
-	public isPaused = false;
-	public showInspector = false;
-	public showLogs = false;
-	public logScrollBottom = true;
-	public bridge: Bridge;
+public mode = 'board' as 'board' | 'dashboard' | 'history';
+  public selectedRunId: string | null = null;
+  public isPaused = false;
+  public showInspector = false;
+  public showLogs = false;
+  public logScrollBottom = true;
+  public ui: UiStore;
+  public bridge: Bridge;
 
 	private _historyUnsub: (() => void) | null = null;
 	private _queueStatusUnsub: (() => void) | null = null;
@@ -37,11 +38,13 @@ export class RenderVm {
 	private _logsUnsub: (() => void) | null = null;
 	private _dispose: (() => void) | null = null;
 
-	constructor(ui: UiStore, bridge: Bridge) {
-		this._dispose = () => {};
-		this.bridge = bridge;
-		this.syncAll();
-	}
+constructor(ui: UiStore, bridge: Bridge) {
+    this._dispose = () => {};
+    this.ui = ui;
+    this.bridge = bridge;
+    this.syncAll();
+    this.wireSubscriptions();
+  }
 
 	private async syncAll(): Promise<void> {
 		await Promise.all([
@@ -105,7 +108,7 @@ export class RenderVm {
 		const seed = 42;
 		const result = await this.bridge.retry_render(this.selectedRunId, seed);
 		if (result.ok) {
-			pushToast('info', 'Retry started', {
+			this.ui.pushToast('info', 'Retry started', {
 				message: `Resuming render for ${this.selectedRunId}`,
 			});
 			const qs = get(queueStore);
@@ -119,7 +122,7 @@ export class RenderVm {
 		if (!this.selectedRunId) return;
 		const result = await this.bridge.cancel_render(this.selectedRunId);
 		if (result.ok) {
-			pushToast('error', 'Render cancelled', {
+			this.ui.pushToast('error', 'Render cancelled', {
 				message: `Job aborted for ${this.selectedRunId}`,
 			});
 			const qs = get(queueStore);
@@ -145,7 +148,7 @@ export class RenderVm {
 		};
 		const result = await this.bridge.resume_render(args);
 		if (result.ok) {
-			pushToast('info', 'Resume started', {
+			this.ui.pushToast('info', 'Resume started', {
 				message: `Resuming render for ${this.selectedRunId}`,
 			});
 		}
@@ -157,7 +160,7 @@ export class RenderVm {
 		if (!this.selectedRunId) return;
 		const result = await this.bridge.open_output_folder(this.selectedRunId);
 		if (result.ok) {
-			pushToast('info', 'Folder opened', {
+			this.ui.pushToast('info', 'Folder opened', {
 				message: `Output folder for ${this.selectedRunId}`,
 			});
 		}
@@ -202,7 +205,7 @@ export class RenderVm {
 			};
 			const qs = get(queueStore);
 			queueStore.set({ ...qs, items: [...qs.items, newItem] });
-			pushToast('info', 'Queue item added', {
+			this.ui.pushToast('info', 'Queue item added', {
 				message: `Added ${topic} to render queue`,
 			});
 		}
